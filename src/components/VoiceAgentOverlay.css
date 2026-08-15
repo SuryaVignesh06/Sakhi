@@ -1,0 +1,250 @@
+/* ═══ VOICE CALL OVERLAY ══════════════════════════════════════════════
+   Orb centred, transcript underneath, nothing else competing with them. */
+
+.vo-root {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: voIn 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes voIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* The field the orb sits on is the inverse of the orb itself. */
+.vo-dark  { background: #0A0A0A; color: #F5F5F5; }
+.vo-light { background: #FFFFFF; color: #101010; }
+
+.vo-topbar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  flex-shrink: 0;
+}
+
+.vo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  background: rgba(var(--ink), 0.07);
+  border: 1px solid var(--border-subtle);
+}
+.vo-badge.is-error { color: #F87171; border-color: rgba(248, 113, 113, 0.4); }
+
+.vo-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: voPulse 1.8s ease-in-out infinite;
+}
+@keyframes voPulse { 50% { opacity: 0.35; } }
+
+.vo-close {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  opacity: 0.7;
+  transition: background 140ms ease, opacity 140ms ease;
+}
+.vo-close:hover { background: rgba(var(--ink), 0.09); opacity: 1; }
+
+/* ─── ORB ─────────────────────────────────────────────────────────── */
+/* No ring, no disc, no plate — the blob's own silhouette is the shape. The
+   depth that used to come from a circular inset shadow is now inside the
+   fragment shader, where it follows the surface instead of tracing a circle
+   the orb does not actually fill. */
+
+.vo-orb-slot {
+  position: relative;
+  flex: 0 0 auto;
+  width: min(46vh, 440px);
+  height: min(46vh, 440px);
+  margin: 8px 0 4px;
+}
+
+.voice-orb { position: relative; width: 100%; height: 100%; }
+.voice-orb canvas { display: block; width: 100% !important; height: 100% !important; }
+
+/* Grain over the render. The gradient across a large smooth surface bands
+   badly on 8-bit displays; noise breaks the bands up. */
+.voice-orb-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.16;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ─── TRANSCRIPT ──────────────────────────────────────────────────── */
+.vo-feed {
+  flex: 1;
+  width: min(680px, 90vw);
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 4px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  scrollbar-width: thin;
+  /* Fades the oldest lines out at the top rather than cutting them. */
+  mask-image: linear-gradient(to bottom, transparent 0, #000 32px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 32px);
+}
+.vo-feed::-webkit-scrollbar { width: 6px; }
+.vo-feed::-webkit-scrollbar-thumb { background: rgba(var(--ink), 0.14); border-radius: 99px; }
+
+.vo-hint {
+  text-align: center;
+  font-size: 14px;
+  opacity: 0.45;
+  padding-top: 20px;
+}
+
+.vo-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: voTurnIn 200ms ease-out;
+}
+@keyframes voTurnIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.vo-who {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.45;
+}
+
+/* Centred under the orb, like a caption track — the speaker is named above
+   each line, so left/right alignment was doing no work that the label was not
+   already doing, and it pushed the text out to the window edge. */
+.vo-turn--you,
+.vo-turn--eva { align-items: center; text-align: center; }
+
+.vo-text {
+  font-size: 20px;
+  line-height: 1.5;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.vo-turn--eva .vo-text { font-weight: 400; }
+.vo-turn--you .vo-text { opacity: 0.85; }
+
+/* Not yet transcribed — visibly provisional, so it is never read as a
+   confirmed understanding of what was said. */
+.vo-turn.is-pending .vo-text { opacity: 0.4; font-style: italic; }
+
+.vo-turn.is-live .vo-text::after {
+  content: '';
+  display: inline-block;
+  width: 2px;
+  height: 0.95em;
+  margin-left: 3px;
+  vertical-align: -0.12em;
+  background: currentColor;
+  animation: voCaret 1s steps(2, start) infinite;
+}
+@keyframes voCaret { 50% { opacity: 0; } }
+
+.vo-interrupt {
+  margin-bottom: 28px;
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: inherit;
+  background: rgba(var(--ink), 0.08);
+  border: 1px solid var(--border-subtle);
+  transition: background 140ms ease;
+  flex-shrink: 0;
+}
+.vo-interrupt:hover { background: rgba(var(--ink), 0.14); }
+
+@media (prefers-reduced-motion: reduce) {
+  .vo-root, .vo-turn { animation: none; }
+  .vo-dot, .vo-turn.is-live .vo-text::after { animation: none; }
+}
+
+/* An aside, not an alarm. */
+.vo-notice {
+  font-size: 12px;
+  opacity: 0.5;
+  margin-left: 10px;
+}
+
+/* ─── MODEL SELECTOR ON THE CALL ──────────────────────────────────── */
+.vo-model { margin-left: auto; margin-right: 12px; }
+.vo-model .model-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  color: inherit;
+  background: rgba(var(--ink), 0.07);
+  border: 1px solid var(--border-subtle);
+}
+.vo-model .model-selector:hover { background: rgba(var(--ink), 0.12); }
+
+/* ─── PERMISSION, ASKED IN THE CALL ───────────────────────────────── */
+.vo-perms {
+  width: min(680px, 90vw);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+  margin-bottom: 6px;
+}
+
+.vo-perm {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: rgba(var(--ink), 0.06);
+  border: 1px solid var(--border-strong);
+  animation: voTurnIn 220ms ease-out;
+}
+
+.vo-perm-body { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.vo-perm-title { font-size: 15px; }
+.vo-perm-reason { font-size: 13px; opacity: 0.6; }
+.vo-perm-hint { font-size: 12px; opacity: 0.4; margin-top: 2px; }
+
+.vo-perm-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+.vo-perm-allow,
+.vo-perm-deny {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: background 140ms ease;
+}
+.vo-perm-allow { background: var(--accent); color: #FFFFFF; }
+.vo-perm-allow:hover { background: var(--accent-hover); }
+.vo-perm-deny { background: rgba(var(--ink), 0.08); color: inherit; border: 1px solid var(--border-subtle); }
+.vo-perm-deny:hover { background: rgba(var(--ink), 0.14); }

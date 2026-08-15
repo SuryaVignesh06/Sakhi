@@ -1,0 +1,115 @@
+/* Task completion dashboard.
+
+   Series colours are the validated categorical slots, declared as roles here
+   so light/dark swap in one place. Light values first; the dark steps are the
+   same three hues re-stepped for a dark surface, not an automatic flip. */
+
+.td-root {
+  --td-done:  #1baf7a;
+  --td-doing: #2a78d6;
+  --td-todo:  #eda100;
+
+  display: grid;
+  grid-template-columns: minmax(120px, 150px) 1fr;
+  gap: 20px;
+  align-items: center;
+}
+
+/* The toggle must win over the OS setting in both directions, so the dark
+   values are declared under both scopes. */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme='light'])) .td-root {
+    --td-done:  #199e70;
+    --td-doing: #3987e5;
+    --td-todo:  #c98500;
+  }
+}
+:root[data-theme='dark'] .td-root {
+  --td-done:  #199e70;
+  --td-doing: #3987e5;
+  --td-todo:  #c98500;
+}
+
+/* ─── HERO NUMBER ─────────────────────────────────────────────────── */
+.td-hero { display: flex; flex-direction: column; gap: 4px; }
+
+.td-figure {
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  /* Text wears text tokens, never a series colour. */
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.td-unit { font-size: 20px; color: var(--text-muted); margin-left: 2px; }
+.td-caption { font-size: 12px; color: var(--text-muted); }
+
+.td-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(var(--ink), 0.10);
+  overflow: hidden;
+  margin-top: 8px;
+}
+.td-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--td-done);
+  transition: width 420ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── BARS ────────────────────────────────────────────────────────── */
+.td-chart { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+.td-row {
+  display: grid;
+  grid-template-columns: 84px 1fr 28px;
+  align-items: center;
+  gap: 10px;
+}
+
+.td-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Recessive track; the bar carries the signal. */
+.td-barwrap {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(var(--ink), 0.06);
+  overflow: hidden;
+}
+
+.td-bar {
+  display: block;
+  height: 100%;
+  /* Rounded data-end anchored to the baseline — square at the axis, rounded
+     where the value stops. */
+  border-radius: 0 4px 4px 0;
+  min-width: 3px;
+  transition: width 420ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.td-bar--done  { background: var(--td-done); }
+.td-bar--doing { background: var(--td-doing); }
+.td-bar--todo  { background: var(--td-todo); }
+
+.td-value {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .td-fill, .td-bar { transition: none; }
+}
+
+@media (max-width: 620px) {
+  .td-root { grid-template-columns: 1fr; }
+}

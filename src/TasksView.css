@@ -1,0 +1,676 @@
+/* Sakhi - Tasks Module (AI Productivity Workspace) Styles */
+
+.tasks-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  /* The page itself no longer scrolls — the columns scroll inside their own
+     panels, which is what keeps the three of them aligned. */
+  overflow: hidden;
+  padding: 14px 18px 18px;
+  color: var(--text-primary, #E8E6EC);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ─── NEXT BEST ACTION AI BANNER ─────────────────────────────────── */
+.next-best-action-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 22px;
+  border-radius: 16px;
+  background: var(--surface-1);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-highlight);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  overflow: hidden;
+}
+
+.nba-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nba-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(var(--ink), 0.10);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.nba-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nba-subtitle {
+  font-size: 12.5px;
+  color: var(--text-muted, #A9A3B0);
+}
+
+.nba-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.nba-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.nba-meta-pill {
+  font-size: 11.5px;
+  padding: 3px 9px;
+  border-radius: 12px;
+  background: rgba(var(--ink), 0.08);
+  color: var(--accent-mint, #10B981);
+  font-weight: 500;
+}
+
+.nba-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+/* ─── WORKSPACE LAYOUT (3 COLUMNS) ────────────────────────────────── */
+/* Layout only — it holds the columns and must never paint. A background here
+   draws a second container behind panels that already have one. */
+.tasks-workspace {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 16px;
+  width: 100%;
+  /* One height for the row, so the three columns line up top AND bottom. The
+     old `min-height: 600px` let each column end wherever its content did. */
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+}
+
+.tasks-workspace--with-drawer {
+  grid-template-columns: 220px 1fr 380px;
+}
+
+/* ─── LEFT SUB-SIDEBAR ───────────────────────────────────────────── */
+.tasks-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+}
+
+.sidebar-group-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(var(--ink), 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 8px;
+}
+
+.sidebar-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tasks-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: rgba(var(--ink), 0.75);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tasks-nav-btn:hover {
+  background: rgba(var(--ink), 0.07);
+  color: var(--text-primary);
+}
+
+.tasks-nav-btn.active {
+  background: rgba(var(--ink), 0.10);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.tasks-nav-btn-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-count-badge {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: rgba(var(--ink), 0.08);
+  color: rgba(var(--ink), 0.6);
+}
+
+.tasks-nav-btn.active .nav-count-badge {
+  background: rgba(var(--ink), 0.16);
+  color: var(--text-primary);
+}
+
+.project-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.tasks-stats-card {
+  margin-top: auto;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(var(--ink), 0.03);
+  border: 1px solid rgba(var(--ink), 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stats-progress-bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(var(--ink), 0.1);
+  overflow: hidden;
+}
+
+.stats-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(var(--ink), 0.55), rgba(var(--ink), 0.9));
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+/* ─── MIDDLE MAIN WORKSPACE ──────────────────────────────────────── */
+/**
+ * The middle column is a panel like the other two.
+ *
+ * It used to be bare, so the list floated on the aurora between two carded
+ * columns — three different materials in one row. `min-height: 0` plus an
+ * inner scroll keeps all three ending on the same line however long the list
+ * gets.
+ */
+.tasks-main {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  min-height: 0;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+}
+
+/* The list scrolls inside the panel rather than stretching it. */
+.task-list-view {
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 2px;
+}
+
+.tasks-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.view-tabs-group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--surface-1);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.view-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 7px;
+  background: transparent;
+  border: none;
+  color: rgba(var(--ink), 0.65);
+  font-size: 12px;
+  font-weight: 550;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.view-tab-btn:hover {
+  color: var(--text-primary);
+  background: rgba(var(--ink), 0.05);
+}
+
+.view-tab-btn.active {
+  background: rgba(var(--ink), 0.12);
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+}
+
+.quick-add-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: var(--surface-1);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.quick-add-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 13.5px;
+}
+
+.quick-add-input::placeholder {
+  color: rgba(var(--ink), 0.4);
+}
+
+/* ─── LIST VIEW ──────────────────────────────────────────────────── */
+.task-list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--surface-1);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.task-item-row:hover {
+  background: var(--surface-1-hover);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+/* Selection is a hairline and a lift, not a coloured wash. The magenta fill
+   this replaced was the loudest thing on the page. */
+.task-item-row.selected {
+  background: var(--surface-1-hover);
+  border-color: var(--aurora-border);
+  box-shadow: inset 2px 0 0 var(--aurora-violet);
+}
+
+.task-item-row.completed .task-title-text {
+  text-decoration: line-through;
+  color: rgba(var(--ink), 0.4);
+}
+
+.task-check-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1.5px solid rgba(var(--ink), 0.3);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #10B981;
+  transition: all 0.15s ease;
+}
+
+.task-check-btn.checked {
+  background: #10B981;
+  border-color: #10B981;
+  color: #0A0F1D;
+}
+
+.task-title-text {
+  font-size: 13.5px;
+  font-weight: 550;
+  color: var(--text-primary);
+}
+
+.priority-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.priority-badge.Critical { background: rgba(239, 68, 68, 0.2); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+.priority-badge.High { background: rgba(249, 115, 22, 0.2); color: #F97316; border: 1px solid rgba(249, 115, 22, 0.3); }
+.priority-badge.Medium { background: rgba(234, 179, 8, 0.2); color: #EAB308; border: 1px solid rgba(234, 179, 8, 0.3); }
+.priority-badge.Low { background: rgba(16, 185, 129, 0.2); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.3); }
+
+/* ─── KANBAN BOARD VIEW ──────────────────────────────────────────── */
+.kanban-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.kanban-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-1);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  min-height: 400px;
+}
+
+.kanban-col-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(var(--ink), 0.08);
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(var(--ink), 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kanban-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(var(--ink), 0.035);
+  border: 1px solid rgba(var(--ink), 0.08);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.kanban-card:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+}
+
+/* ─── FOCUS MODE VIEW ────────────────────────────────────────────── */
+.focus-mode-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 40px 20px;
+  border-radius: 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+  text-align: center;
+}
+
+.timer-circle {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--ink), 0.06) 0%, transparent 70%);
+  border: 2px solid var(--aurora-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 40px rgba(var(--shadow), 0.25);
+}
+
+.timer-digits {
+  font-size: 38px;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  color: var(--text-primary);
+  letter-spacing: 0.05em;
+}
+
+/* ─── RIGHT DRAWER (TASK DETAILS & AI EDITOR) ───────────────────── */
+.task-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.drawer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.drawer-title-input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text-primary);
+  outline: none;
+  text-overflow: ellipsis;
+}
+
+.drawer-title-input:focus {
+  border-bottom: 1px solid var(--aurora-violet);
+}
+
+.prop-grid {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 10px 16px;
+  align-items: center;
+  font-size: 12.5px;
+}
+
+.prop-label {
+  color: rgba(var(--ink), 0.5);
+  font-weight: 500;
+}
+
+.prop-select {
+  background: rgba(var(--ink), 0.05);
+  border: 1px solid rgba(var(--ink), 0.1);
+  color: var(--text-primary);
+  padding: 4px 8px;
+  border-radius: 6px;
+  outline: none;
+  font-size: 12px;
+}
+
+.subtasks-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(var(--ink), 0.03);
+  border: 1px solid rgba(var(--ink), 0.06);
+}
+
+.subtask-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+/* ─── MARKDOWN NOTES PREVIEW STYLES ───────────────────────────────── */
+.task-notes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.task-notes-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.task-notes-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(var(--ink), 0.08);
+  border: 1px solid rgba(var(--ink), 0.12);
+  color: rgba(var(--ink), 0.85);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.task-notes-toggle-btn:hover {
+  background: rgba(var(--ink), 0.15);
+  border-color: rgba(var(--ink), 0.3);
+  color: var(--text-primary);
+}
+
+.task-notes-preview-box {
+  background: rgba(var(--ink), 0.04);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  min-height: 110px;
+  max-height: 280px;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(var(--ink), 0.92);
+  transition: border-color 0.2s ease;
+}
+
+.task-notes-preview-box:hover {
+  border-color: rgba(var(--ink), 0.3);
+}
+
+.task-notes-preview-box h1,
+.task-notes-preview-box h2,
+.task-notes-preview-box h3,
+.task-notes-preview-box h4 {
+  color: var(--text-primary);
+  margin-top: 8px;
+  margin-bottom: 6px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.task-notes-preview-box h3 {
+  font-size: 14px;
+}
+
+.task-notes-preview-box ul {
+  padding-left: 18px;
+  margin: 6px 0;
+}
+
+.task-notes-preview-box li {
+  margin-bottom: 4px;
+  color: rgba(var(--ink), 0.88);
+}
+
+.task-notes-preview-box code {
+  background: rgba(var(--ink), 0.12);
+  color: var(--text-primary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Fira Code', monospace;
+  font-size: 11.5px;
+}
+
+
+/* ─── SEMANTIC BADGES IN LIGHT MODE ──────────────────────────────────
+   Priority keeps its hue in both themes, but a mid-tone label that reads
+   clearly on a dark wash disappears on a pale one. Only the text darkens. */
+[data-theme='light'] .priority-badge.Critical { color: #B91C1C; }
+[data-theme='light'] .priority-badge.High     { color: #C2410C; }
+[data-theme='light'] .priority-badge.Medium   { color: #92700A; }
+[data-theme='light'] .priority-badge.Low      { color: #047857; }

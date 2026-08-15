@@ -1,0 +1,163 @@
+// Eva — local-first store. SQLite by design: no server, no network,
+// no cloud sync. The file lives beside the app and never leaves the machine.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Key/value app settings. Small and unstructured on purpose.
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+/// Per-provider preferences. API keys are NOT stored here — they live in the
+/// encrypted vault (src/security/keystore.ts). Only non-secret config belongs.
+model Provider {
+  id           String   @id
+  label        String
+  enabled      Boolean  @default(true)
+  defaultModel String?
+  baseUrl      String?
+  lastUsedAt   DateTime?
+  createdAt    DateTime @default(now())
+}
+
+model Conversation {
+  id        String     @id @default(uuid())
+  title     String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  messages  Message[]
+  agentLogs AgentLog[]
+  tasks     Task[]
+
+  @@index([updatedAt])
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String // system | user | assistant
+  content        String
+  provider       String?
+  model          String?
+  tokens         Int?
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+model Task {
+  id             String        @id @default(uuid())
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  title          String
+  status         String        @default("pending") // pending | running | completed | failed
+  progress       Int           @default(0)
+  error          String?
+  dueAt          DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([status])
+}
+
+/// A workspace with its own memory. Projects exist so that what Sakhi learns
+/// while working on one does not leak into another: preferences recalled for
+/// a turn are scoped to the project it belongs to, plus the global ones.
+model Project {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  /// Optional folder this project is about, so file work can default to it.
+  rootPath    String?
+  /// Custom instructions — prepended to the system prompt while this project
+  /// is active, the way Claude Projects carry their own standing brief.
+  instructions String?
+  /// Reference material the agent should treat as known context.
+  knowledge   ProjectKnowledge[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  archivedAt  DateTime?
+
+  memories    Memory[]
+}
+
+/// A document pinned to a project. Small enough to inline into the prompt;
+/// larger material belongs on disk and is read with the filesystem tool.
+model ProjectKnowledge {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model Memory {
+  id        String   @id @default(uuid())
+  content   String
+  kind      String   @default("fact") // like | dislike | preference | fact | project | reference
+  source    String?
+  /// Null means global — recalled for every turn. Set means the memory belongs
+  /// to one project and is only recalled while that project is active.
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /// Vector embedding as JSON. SQLite has no native vector type; retrieval is
+  /// done in-process. Swap for sqlite-vec when the corpus outgrows that.
+  embedding String?
+  createdAt DateTime @default(now())
+
+  @@index([kind])
+  @@index([projectId])
+}
+
+/// One row per agent invocation — the audit trail for "what actually ran".
+model AgentLog {
+  id             String        @id @default(uuid())
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  agent          String
+  provider       String?
+  model          String?
+  durationMs     Int?
+  status         String        @default("completed")
+  error          String?
+  createdAt      DateTime      @default(now())
+
+  @@index([createdAt])
+}
+
+model AutomationHistory {
+  id           String   @id @default(uuid())
+  automationId String
+  name         String
+  trigger      String
+  status       String // success | failed | skipped
+  detail       String?
+  durationMs   Int?
+  ranAt        DateTime @default(now())
+
+  @@index([automationId, ranAt])
+}
+
+model VoiceHistory {
+  id         String   @id @default(uuid())
+  transcript String
+  state      String // recording | transcribing | completed | error
+  durationMs Int?
+  confidence Float?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+}

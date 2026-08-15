@@ -1,0 +1,385 @@
+/* Model selector — a centered modal, not a dropdown. The list is long and
+   filterable, which a menu hanging off the topbar could never hold without
+   scrolling in a 460px slot. Reuses the shell's tokens throughout. */
+
+.ms-root { position: relative; }
+
+.ms-flip { transform: rotate(180deg); }
+.selector-chevron { transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* Full-window scrim. Rendered in a portal, so no ancestor's overflow or
+   stacking context can clip it. */
+.ms-overlay {
+  position: fixed;
+  inset: 0;
+  /* Above the voice overlay (3000). The picker is portalled to <body>, so it
+     is a sibling of that overlay rather than a child — at 2000 it rendered
+     underneath it, which is why the model button did nothing in agent mode:
+     the dialog opened, invisible, behind the call screen. */
+  z-index: 4000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: rgba(4, 5, 9, 0.62);
+  backdrop-filter: blur(18px) saturate(120%);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+  animation: msFade 180ms ease;
+}
+@keyframes msFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.ms-pop {
+  position: relative;
+  width: min(820px, 100%);
+  height: min(76vh, 720px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+  animation: msIn 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes msIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ─── MODAL HEADER ───────────────────────────────────────────────── */
+.ms-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.ms-head-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.ms-head-sub {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+.ms-head-close {
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: background 140ms ease, color 140ms ease;
+}
+.ms-head-close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* ─── TABS ───────────────────────────────────────────────────────── */
+.ms-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.ms-tab {
+  position: relative;
+  flex: 1;
+  padding: 7px 4px;
+  border-radius: var(--r-sm);
+  font-size: 12.5px;
+  color: var(--text-muted);
+  transition: background 140ms ease, color 140ms ease;
+}
+.ms-tab:hover { color: var(--text-primary); background: rgba(var(--ink), 0.05); }
+.ms-tab--on {
+  background: var(--accent-mint-pale);
+  color: var(--accent-mint);
+  font-weight: 600;
+}
+/* Amber pip when a provider needs a key it does not have. */
+.ms-nokey {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-warning, #FBBF24);
+}
+
+/* ─── SEARCH BAR ─────────────────────────────────────────────────── */
+.ms-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.ms-search {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  background: rgba(var(--ink), 0.05);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+}
+.ms-search input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--text-primary);
+}
+.ms-search input::placeholder { color: var(--text-faint); }
+
+.ms-sort {
+  height: 32px;
+  padding: 0 6px;
+  border-radius: var(--r-sm);
+  background: rgba(var(--ink), 0.05);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12px;
+  outline: none;
+}
+.ms-sort option { background: #141416; color: var(--text-primary); }
+
+.ms-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-subtle);
+  background: rgba(var(--ink), 0.05);
+  color: var(--text-muted);
+  transition: background 140ms ease, color 140ms ease;
+}
+.ms-icon:hover { background: rgba(var(--ink), 0.1); color: var(--text-primary); }
+.ms-icon--on { color: var(--accent-mint); border-color: rgba(var(--ink), 0.35); }
+
+.ms-spin { animation: msSpin 900ms linear infinite; }
+@keyframes msSpin { to { transform: rotate(360deg); } }
+
+/* ─── KEY PANEL ──────────────────────────────────────────────────── */
+.ms-keypanel {
+  padding: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(var(--ink), 0.025);
+  flex-shrink: 0;
+}
+.ms-keyrow { display: flex; gap: 7px; align-items: center; }
+.ms-keyrow input {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  background: rgba(var(--ink), 0.05);
+  border: 1px solid var(--border-subtle);
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  outline: none;
+}
+.ms-keyrow input:focus { border-color: rgba(var(--ink), 0.4); }
+.ms-keymask {
+  flex: 1;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.ms-keysave,
+.ms-keydel {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  font-weight: 550;
+  border: 1px solid var(--border-subtle);
+}
+.ms-keysave { background: var(--accent-mint); color: #05231F; border-color: transparent; }
+.ms-keysave:disabled { opacity: 0.6; }
+.ms-keydel { background: rgba(var(--ink), 0.05); color: var(--text-muted); }
+.ms-keydel:hover { color: #F87171; border-color: rgba(248, 113, 113, 0.4); }
+
+.ms-keymsg { margin-top: 7px; font-size: 11.5px; }
+.ms-keymsg.is-ok { color: var(--accent-mint); }
+.ms-keymsg.is-bad { color: #F87171; }
+
+.ms-keynote {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--text-faint);
+}
+.ms-keynote svg { flex-shrink: 0; margin-top: 1px; }
+.ms-keynote a { color: var(--accent-mint); }
+
+/* ─── FILTERS ────────────────────────────────────────────────────── */
+.ms-filters {
+  display: flex;
+  gap: 5px;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+.ms-filters::-webkit-scrollbar { display: none; }
+.ms-chip {
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  font-size: 11.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  transition: all 140ms ease;
+}
+.ms-chip:hover { color: var(--text-primary); }
+.ms-chip--on {
+  background: var(--accent-mint-pale);
+  border-color: rgba(var(--ink), 0.35);
+  color: var(--accent-mint);
+}
+
+/* ─── LIST ───────────────────────────────────────────────────────── */
+/* Two columns once the modal is wide enough to hold them — a single narrow
+   column in an 820px dialog is mostly empty gutter. */
+.ms-list {
+  flex: 1;
+  min-height: 120px;
+  overflow-y: auto;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 6px;
+  align-content: start;
+  scrollbar-width: thin;
+}
+.ms-list::-webkit-scrollbar { width: 8px; }
+.ms-list::-webkit-scrollbar-thumb { background: rgba(var(--ink), 0.12); border-radius: 99px; }
+
+/* Status rows are not list entries — they should not sit in one grid cell. */
+.ms-list > .ms-state { grid-column: 1 / -1; }
+
+.ms-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  border: 1px solid transparent;
+  text-align: left;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.ms-item:hover {
+  background: rgba(var(--ink), 0.06);
+  border-color: var(--border-subtle);
+}
+.ms-item--on {
+  background: var(--accent-mint-pale);
+  border-color: rgba(16, 163, 127, 0.4);
+}
+
+.ms-item-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.ms-item-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13.5px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ms-badge {
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--accent-mint-pale);
+  color: var(--accent-mint);
+  border: 1px solid rgba(var(--ink), 0.3);
+  flex-shrink: 0;
+}
+.ms-item-meta {
+  display: flex;
+  gap: 9px;
+  font-size: 11px;
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.ms-caps { display: flex; align-items: center; gap: 6px; color: var(--text-faint); flex-shrink: 0; }
+.ms-tick { color: var(--accent-mint); }
+
+.ms-state {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 22px 14px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.ms-state.is-error { color: #F87171; }
+.ms-state.is-blocked { color: var(--color-warning, #FBBF24); }
+
+/* ─── FOOTER ─────────────────────────────────────────────────────── */
+.ms-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 11px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.ms-foot button { color: var(--text-faint); }
+.ms-foot button:hover { color: var(--text-primary); }
+
+@media (max-width: 720px) {
+  .ms-overlay { padding: 0; }
+  .ms-pop {
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+    border: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-pop,
+  .ms-overlay { animation: none; }
+  .ms-spin { animation: none; }
+}

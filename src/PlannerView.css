@@ -1,0 +1,698 @@
+/* Planner — three columns of cards on the page ground.
+
+   Cards, not one big panel: the rail, the calendar and the detail column each
+   answer a different question, and the gaps between them are what keeps the
+   grid from reading as one enormous table. */
+
+.pl-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 18px 20px 20px;
+  gap: 14px;
+}
+
+.pl-greet { flex-shrink: 0; }
+.pl-greet h1 { font-size: 19px; font-weight: 600; letter-spacing: -0.01em; color: var(--text-primary); }
+.pl-greet p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+.pl-cols {
+  display: grid;
+  grid-template-columns: 286px minmax(0, 1fr) 320px;
+  gap: 14px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ─── CARD ────────────────────────────────────────────────────────── */
+.pl-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.pl-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.pl-card-head h2 { flex: 1; font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.pl-pct { font-size: 13px; font-weight: 600; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+.pl-plus, .pl-iconbtn {
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px;
+  color: var(--text-muted);
+  transition: background 140ms ease, color 140ms ease;
+  flex-shrink: 0;
+}
+.pl-plus:hover, .pl-iconbtn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+.pl-empty { font-size: 12.5px; color: var(--text-faint); padding: 6px 2px; }
+
+/* ─── RAIL ────────────────────────────────────────────────────────── */
+.pl-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 2px;
+}
+
+.pl-quick {
+  width: 100%;
+  padding: 8px 11px;
+  border-radius: 9px;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  outline: none;
+  margin-bottom: 8px;
+}
+.pl-quick::placeholder { color: var(--text-faint); }
+.pl-quick:focus { border-color: var(--border-hover); }
+
+.pl-bucketwrap { margin-bottom: 2px; }
+
+.pl-bucket {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  transition: background 140ms ease, color 140ms ease;
+}
+.pl-bucket:hover { background: var(--bg-hover); color: var(--text-primary); }
+.pl-bucket.is-on { background: var(--accent-soft); color: var(--text-primary); }
+.pl-bucket span { flex: 1; text-align: left; }
+.pl-bucket em {
+  font-style: normal;
+  font-size: 11.5px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.pl-items {
+  list-style: none;
+  margin: 4px 0 8px;
+  padding: 0 0 0 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pl-items li { display: flex; align-items: flex-start; gap: 8px; }
+
+/* 16px is the smallest a checkbox can be and still read as a target. */
+.pl-box {
+  width: 16px; height: 16px;
+  flex-shrink: 0;
+  margin-top: 7px;
+  border-radius: 5px;
+  border: 1.5px solid var(--border-strong);
+  display: flex; align-items: center; justify-content: center;
+  color: #FFFFFF;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+.pl-box:hover { border-color: var(--accent); }
+.pl-box.is-done { background: var(--accent); border-color: var(--accent); }
+
+.pl-itemtext {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: 5px 7px;
+  border-radius: 8px;
+  transition: background 140ms ease;
+}
+.pl-itemtext:hover { background: var(--bg-hover); }
+.pl-itemtext.is-on { background: var(--bg-active); }
+.pl-itemtext > span {
+  display: block;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--text-primary);
+}
+.pl-itemtext em {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-style: normal;
+  font-size: 10.5px;
+  margin-top: 3px;
+  color: var(--text-muted);
+}
+.pl-itemtext em::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Priority is an ordered scale, so it runs warm to cool rather than using
+   arbitrary identity colours. */
+.pl-pri--critical { color: #EC5F7A; }
+.pl-pri--high     { color: #F0803A; }
+.pl-pri--medium   { color: #E0A32E; }
+.pl-pri--low      { color: #5B8DEF; }
+.pl-pri--none     { color: var(--text-faint); }
+
+.pl-projects { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.pl-projects li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.pl-pdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+.pl-track {
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(var(--ink), 0.09);
+  overflow: hidden;
+  margin-bottom: 9px;
+}
+.pl-track span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #EC6A9C, #9B7BEA);
+  transition: width 420ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.pl-progline { font-size: 12.5px; color: var(--text-secondary); }
+.pl-progline b { color: var(--accent); font-weight: 600; }
+.pl-progsub { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+
+/* ─── CALENDAR ────────────────────────────────────────────────────── */
+.pl-cal {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  padding: 16px 16px 10px;
+}
+
+.pl-cal-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.pl-cal-head h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+}
+.pl-sep { color: var(--text-faint); font-weight: 400; }
+.pl-wk { color: var(--text-secondary); }
+
+.pl-arrows { display: flex; gap: 2px; }
+.pl-arrows button {
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  color: var(--text-secondary);
+  transition: background 140ms ease;
+}
+.pl-arrows button:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+.pl-scale {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(var(--ink), 0.06);
+  border: 1px solid var(--border-subtle);
+  margin-left: auto;
+}
+.pl-scale button {
+  padding: 5px 15px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: background 140ms ease, color 140ms ease;
+}
+.pl-scale button:hover { color: var(--text-primary); }
+.pl-scale button.is-on {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(var(--shadow), 0.18);
+}
+
+.pl-today {
+  padding: 7px 16px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+}
+.pl-today:hover { background: var(--bg-hover); }
+
+.pl-daysrow,
+.pl-allday {
+  display: grid;
+  grid-template-columns: 56px repeat(7, minmax(0, 1fr));
+  flex-shrink: 0;
+}
+
+.pl-dayhead { display: flex; flex-direction: column; align-items: center; gap: 1px; padding-bottom: 8px; }
+.pl-dayhead strong {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.pl-dayhead span { font-size: 11px; color: var(--text-faint); }
+.pl-dayhead.is-today strong,
+.pl-dayhead.is-today span { color: #EC6A9C; }
+
+.pl-allday { border-top: 1px solid var(--border-subtle); padding: 5px 0; min-height: 30px; }
+.pl-alllabel {
+  font-size: 10.5px;
+  color: var(--text-faint);
+  align-self: center;
+  padding-right: 8px;
+  text-align: right;
+}
+.pl-allcell { padding: 0 2px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pl-allchip {
+  font-size: 11px;
+  padding: 3px 7px;
+  border-radius: 5px;
+  text-align: left;
+  color: #23212B;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pl-scroll { flex: 1; min-height: 0; overflow-y: auto; }
+
+.pl-grid {
+  display: grid;
+  grid-template-columns: 56px repeat(7, minmax(0, 1fr));
+  position: relative;
+}
+
+.pl-gutter div { position: relative; }
+.pl-gutter span {
+  position: absolute;
+  top: -7px;
+  right: 9px;
+  font-size: 10.5px;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.pl-daycol { position: relative; border-left: 1px solid var(--border-subtle); min-width: 0; }
+
+/* Empty slots are buttons, so adding a task is a click on the time you want. */
+.pl-slot {
+  display: block;
+  width: 100%;
+  border-top: 1px solid var(--border-subtle);
+  transition: background 120ms ease;
+}
+.pl-slot:hover { background: rgba(var(--ink), 0.05); }
+
+.pl-ev {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  text-align: left;
+  overflow: hidden;
+  transition: transform 140ms ease, filter 140ms ease;
+  z-index: 2;
+}
+.pl-ev:hover { transform: translateY(-1px); filter: brightness(1.03); }
+.pl-ev.is-on { outline: 2px solid var(--text-primary); outline-offset: -2px; }
+.pl-ev-title {
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.25;
+  color: #23212B;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.pl-ev-time { font-size: 10.5px; color: rgba(35, 33, 43, 0.62); }
+
+/* Event tints stay pale in both themes: they carry dark text, so theming them
+   would break the contrast that text depends on. */
+.pl-t--pink   { background: #FBDDE6; }
+.pl-t--blue   { background: #D9E6FA; }
+.pl-t--violet { background: #E2DEF8; }
+
+/* Current time — one hairline with a dot at the gutter edge. */
+.pl-now {
+  position: absolute;
+  left: 0; right: 0;
+  height: 1.5px;
+  background: #EC5F7A;
+  pointer-events: none;
+  z-index: 3;
+}
+.pl-now::before {
+  content: '';
+  position: absolute;
+  left: -4px; top: -3.5px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #EC5F7A;
+}
+
+/* ─── MONTH / YEAR ────────────────────────────────────────────────── */
+.pl-mhead { display: grid; grid-template-columns: repeat(7, 1fr); padding-bottom: 5px; }
+.pl-mhead span { font-size: 11px; color: var(--text-faint); text-align: center; }
+
+.pl-month {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: minmax(86px, auto);
+  border-top: 1px solid var(--border-subtle);
+  border-left: 1px solid var(--border-subtle);
+}
+.pl-cell {
+  border-right: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.pl-cell.is-out { background: rgba(var(--ink), 0.03); }
+.pl-cell.is-out .pl-cellnum { opacity: 0.35; }
+.pl-cell.is-today { outline: 2px solid #EC6A9C; outline-offset: -2px; }
+
+.pl-cellnum {
+  align-self: flex-start;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  padding: 2px 5px;
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.pl-cellnum:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+.pl-chip {
+  display: block;
+  width: 100%;
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-size: 10.5px;
+  line-height: 1.3;
+  text-align: left;
+  color: #23212B;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pl-more { font-size: 10px; color: var(--text-faint); padding-left: 2px; }
+
+.pl-year {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(138px, 1fr));
+  gap: 10px;
+  align-content: start;
+  padding-top: 4px;
+}
+.pl-mcard {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 13px;
+  border-radius: 13px;
+  text-align: left;
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1), background 140ms ease;
+}
+.pl-mcard:hover { transform: translateY(-2px); background: var(--bg-hover); }
+.pl-mname { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); }
+.pl-mcount {
+  font-size: 24px; font-weight: 600; line-height: 1;
+  color: var(--text-primary); font-variant-numeric: tabular-nums;
+}
+.pl-mbar { display: block; height: 5px; border-radius: 999px; background: rgba(var(--ink), 0.1); overflow: hidden; }
+.pl-mbar span { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
+.pl-mdone { font-size: 10.5px; color: var(--text-faint); }
+
+/* ─── DETAIL ──────────────────────────────────────────────────────── */
+.pl-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 2px;
+}
+
+.pl-nodetail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  color: var(--text-faint);
+  padding: 34px 18px;
+}
+.pl-nodetail p { font-size: 12.5px; line-height: 1.5; max-width: 26ch; }
+
+.pl-detail-head { display: flex; align-items: flex-start; gap: 6px; margin-bottom: 11px; }
+.pl-detail-head h2 {
+  flex: 1;
+  font-size: 15.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+
+.pl-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 13px; }
+.pl-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 500;
+  background: rgba(var(--ink), 0.06);
+  color: var(--text-secondary);
+}
+.pl-flag i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pl-flag.pl-pri--critical { color: #EC5F7A; background: rgba(236, 95, 122, 0.13); }
+.pl-flag.pl-pri--high     { color: #F0803A; background: rgba(240, 128, 58, 0.13); }
+.pl-flag.pl-pri--medium   { color: #E0A32E; background: rgba(224, 163, 46, 0.13); }
+.pl-flag.pl-pri--low      { color: #5B8DEF; background: rgba(91, 141, 239, 0.13); }
+.pl-flag--status { color: #5B8DEF; background: rgba(91, 141, 239, 0.13); }
+
+.pl-facts { display: flex; flex-direction: column; gap: 9px; margin: 0 0 14px; }
+.pl-facts > div { display: flex; align-items: center; gap: 10px; }
+.pl-facts dt { flex: 0 0 96px; font-size: 12px; color: var(--text-muted); }
+.pl-facts dd {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.pl-form { display: flex; flex-direction: column; gap: 9px; margin-bottom: 14px; }
+.pl-form2 { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.pl-form label { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.pl-form label span {
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.pl-form input,
+.pl-form select {
+  padding: 7px 9px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  outline: none;
+  min-width: 0;
+}
+.pl-form input:focus, .pl-form select:focus { border-color: var(--border-hover); }
+
+.pl-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pl-focus, .pl-complete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: filter 140ms ease, background 140ms ease;
+}
+.pl-focus { background: linear-gradient(135deg, #7C6BE8, #9B7BEA); color: #FFFFFF; }
+.pl-focus:hover { filter: brightness(1.07); }
+.pl-complete { background: var(--bg-base); border: 1px solid var(--border-subtle); color: var(--text-primary); }
+.pl-complete:hover { background: var(--bg-hover); }
+
+.pl-subs { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.pl-subs li { display: flex; align-items: flex-start; gap: 9px; }
+.pl-subs li span { font-size: 12.5px; line-height: 1.4; color: var(--text-primary); }
+.pl-subs li .is-struck { text-decoration: line-through; color: var(--text-faint); }
+.pl-subs .pl-box { margin-top: 1px; }
+
+.pl-addsub {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  border: 1px dashed var(--border-subtle);
+  transition: background 140ms ease, color 140ms ease;
+}
+.pl-addsub:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+.pl-notes {
+  width: 100%;
+  min-height: 96px;
+  padding: 10px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-primary);
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  outline: none;
+  resize: vertical;
+}
+.pl-notes:focus { border-color: var(--border-hover); }
+
+/* ─── SLOT COMPOSER ───────────────────────────────────────────────── */
+.pl-slotmodal {
+  position: fixed;
+  inset: 0;
+  z-index: 2200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--shadow), 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: plFade 160ms ease;
+}
+@keyframes plFade { from { opacity: 0; } to { opacity: 1; } }
+
+.pl-slotbox {
+  width: min(380px, 92vw);
+  padding: 18px;
+  border-radius: 18px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 28px 70px rgba(var(--shadow), 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.pl-slotbox header { display: flex; align-items: center; }
+.pl-slotbox header strong { flex: 1; font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.pl-slotbox header button {
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px;
+  color: var(--text-muted);
+}
+.pl-slotbox header button:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+.pl-slotwhen {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.pl-slotbox input {
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  outline: none;
+}
+.pl-slotbox input:focus { border-color: var(--border-hover); }
+
+.pl-slotadd {
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #FFFFFF;
+  background: var(--accent);
+  transition: background 140ms ease, opacity 140ms ease;
+}
+.pl-slotadd:hover { background: var(--accent-hover); }
+.pl-slotadd:disabled { opacity: 0.4; cursor: not-allowed; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pl-track span, .pl-ev, .pl-mcard, .pl-slotmodal { transition: none; animation: none; }
+}
+
+/* Below this the third column cannot hold its own; it becomes a row of cards
+   under the other two rather than being squeezed to nothing. */
+@media (max-width: 1280px) {
+  .pl-cols { grid-template-columns: 250px minmax(0, 1fr); }
+  .pl-detail { grid-column: 1 / -1; flex-direction: row; overflow-x: auto; }
+  .pl-detail > .pl-card { flex: 1 0 280px; }
+}
+
+/* ─── SOLID SURFACES ──────────────────────────────────────────────────
+   The planner is dense, structured content sitting over an animated
+   gradient. Translucent cards let that gradient through behind every row of
+   the grid, so the hairlines and 10px labels fight whatever colour happens to
+   be underneath. Solid it is. */
+/* Dark ONLY. Themed overrides for inputs and other solid elements. */
+
+:root[data-theme='dark'] .pl-quick,
+:root[data-theme='dark'] .pl-form input,
+:root[data-theme='dark'] .pl-form select,
+:root[data-theme='dark'] .pl-notes,
+:root[data-theme='dark'] .pl-today,
+:root[data-theme='dark'] .pl-complete,
+:root[data-theme='dark'] .pl-mcard,
+:root[data-theme='dark'] .pl-scale button.is-on {
+  background: #181818;
+}
+
+:root[data-theme='dark'] .pl-slotbox { background: #141414; }
