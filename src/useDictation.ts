@@ -42,13 +42,13 @@ interface Options {
 /** Silence this long and we hint that we are still listening. */
 const SILENCE_HINT_MS = 4000;
 /** Below this RMS the room counts as quiet. */
-const SILENCE_RMS = 0.012;
+const SILENCE_RMS = 0.005;
 /** Quiet for this long after speech closes the phrase. */
-const PHRASE_GAP_MS = 800;
+const PHRASE_GAP_MS = 450;
 /** Ignore blips shorter than this — a cough is not a sentence. */
-const MIN_SPEECH_MS = 300;
+const MIN_SPEECH_MS = 180;
 /** How often loudness is sampled. */
-const STEP_MS = 100;
+const STEP_MS = 50;
 
 export function useDictation({ onFinal, offline = false }: Options) {
   const [recording, setRecording] = useState(false);

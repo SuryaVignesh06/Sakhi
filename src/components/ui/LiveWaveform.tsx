@@ -425,14 +425,19 @@ export const LiveWaveform = ({
       needsRedrawRef.current = active
       ctx.clearRect(0, 0, rect.width, rect.height)
 
-      const computedBarColor =
-        barColor ||
-        (() => {
-          const style = getComputedStyle(canvas)
-          // Try to get the computed color value directly
-          const color = style.color
-          return color || "#000"
-        })()
+      let computedBarColor = "#FFFFFF"
+      if (barColor) {
+        if (barColor.startsWith("var(")) {
+          const varName = barColor.replace(/var\((--[^)]+)\)/, "$1").trim()
+          const val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim()
+          computedBarColor = val || "#FFFFFF"
+        } else {
+          computedBarColor = barColor
+        }
+      } else {
+        const val = getComputedStyle(canvas).color
+        computedBarColor = val || "#FFFFFF"
+      }
 
       const step = barWidth + barGap
       const barCount = Math.floor(rect.width / step)
