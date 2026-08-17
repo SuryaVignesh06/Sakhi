@@ -464,7 +464,7 @@ function Composer({
       ) : (
         <div className="cv-input-stack">
           {dictation.recording ? (
-            <div className="composer-input cv-dictation-transcript" style={{ minHeight: '36px', padding: '6px 12px', color: 'var(--text-primary)', fontSize: '14px', lineHeight: '1.5', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+            <div className="composer-input cv-dictation-transcript" style={{ minHeight: '36px', padding: '6px 12px', color: 'rgba(255, 255, 255, 0.6)', opacity: 0.8, fontSize: '14px', lineHeight: '1.5', whiteSpace: 'pre-wrap', wordBreak: 'break-word', transition: 'all 0.2s ease' }}>
               {value ? (
                 <span>{value}</span>
               ) : (

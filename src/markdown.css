@@ -37,11 +37,11 @@
 /* ─── HEADINGS ────────────────────────────────────────────────────── */
 
 .as-md .as-h {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'Mirava Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: var(--text-primary);
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  line-height: 1.3;
   /* Generous above, tight below: a heading belongs to the text under it. */
   margin: 26px 0 10px;
   scroll-margin-top: 16px;
