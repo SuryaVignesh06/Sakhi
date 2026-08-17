@@ -1120,7 +1120,7 @@
 
 /* A thin traced border marks recording as a distinct state of the box. */
 .composer--recording {
-  border-color: rgba(16, 163, 127, 0.4) !important;
+  border-color: var(--border-subtle) !important;
 }
 
 .cv-voice-note {

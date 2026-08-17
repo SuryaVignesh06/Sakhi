@@ -1851,7 +1851,7 @@ textarea {
   color: var(--text-muted) !important;
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ COMPOSER Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ──── COMPOSER ────────────────────────────────────────────────────────── */
 .composer {
   /* Follows the column instead of being pinned to a number that no longer
      matches it — a fixed 756px inside a 940px column left the bar visibly
@@ -1972,11 +1972,13 @@ textarea {
    is driven by a `voice.state` event from the backend — never by a local
    timer or by the enabled toggle. */
 .btn-mic.is-recording {
-  background: rgba(248, 113, 113, 0.2) !important;
-  border-color: #F87171 !important;
-  color: #F87171 !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-subtle) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
   animation: micPulse 1.5s ease-in-out infinite;
 }
+.btn-mic.is-recording svg { stroke: currentColor !important; }
+
 @keyframes micPulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.5); }
   50%      { box-shadow: 0 0 0 7px rgba(248, 113, 113, 0); }
@@ -1985,7 +1987,7 @@ textarea {
   .btn-mic.is-recording { animation: none; }
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ SUGGESTED ACTIONS BAR Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ──── SUGGESTED ACTIONS BAR ────────────────────────────────────────── */
 .suggestions-bar {
   position: absolute;
   bottom: 0;
@@ -2057,7 +2059,7 @@ textarea {
   color: var(--text-primary);
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ RIGHT RAIL (STRICT RIGHT ANCHORED) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ──── RIGHT RAIL (STRICT RIGHT ANCHORED) ────────────────────────── */
 .right-rail {
   width: 320px;
   flex-shrink: 0;
@@ -2240,7 +2242,7 @@ textarea {
   background: rgba(var(--ink), 0.05);
   backdrop-filter: blur(26px) saturate(170%);
   border: 1px solid var(--border-subtle);
-  box-shadow: 255, 255, 0.18);
+  box-shadow: none;
   transition: all 0.16s ease;
 }
 
@@ -2405,14 +2407,14 @@ textarea {
   box-sizing: border-box;
   overflow: hidden;
   transition: all 0.2s ease;
-  box-shadow: 255, 255, 0.22), 0 10px 30px rgba(var(--shadow), 0.25);
+  box-shadow: none;
 }
 
 .quick-action-card:hover {
   background: rgba(var(--ink), 0.10);
   border-color: rgba(var(--ink), 0.35);
   transform: translateY(-2px);
-  box-shadow: 255, 255, 0.30), 0 14px 40px rgba(var(--shadow), 0.35);
+  box-shadow: none;
 }
 
 .quick-action-icon {
@@ -2482,7 +2484,7 @@ textarea {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 255, 255, 0.15);
+  box-shadow: none;
 }
 
 .cal-view-btn-white:hover {
@@ -2491,7 +2493,7 @@ textarea {
   transform: translateY(-1px);
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ LEFT SIDEBAR 2x2 SYSTEM STATUS CARD Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ──── LEFT SIDEBAR 2x2 SYSTEM STATUS CARD ────────────────────────── */
 .sidebar-sys-card {
   flex-shrink: 0;
   margin-top: 10px;
@@ -2737,7 +2739,7 @@ textarea {
   justify-content: center;
   cursor: pointer;
   transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 2px 8px rgba(var(--shadow), 0.2);
+  box-shadow: none;
 }
 
 .btn-send svg {
@@ -2752,10 +2754,10 @@ textarea {
   border-color: var(--text-primary) !important;
   color: var(--text-primary) !important;
   transform: scale(1.05);
-  box-shadow: 0 0 12px rgba(var(--ink), 0.35);
+  box-shadow: none;
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ GLOBAL TRANSITION Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ──── GLOBAL TRANSITION ────────────────────────────────────────────────────────── */
 .model-selector,
 .user-chip,
 .action-card,
@@ -2873,7 +2875,7 @@ textarea {
   }
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ SETTINGS MODAL SYSTEM Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ──── SETTINGS MODAL SYSTEM ────────────────────────────────────────────────────────── */
 .settings-modal-overlay {
   position: fixed;
   top: 0;
@@ -3283,7 +3285,7 @@ textarea {
   border-top: 1px solid rgba(var(--ink), 0.06);
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ PRODUCT-ORIENTED SIDEBAR SECTION VIEWS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ──── PRODUCT-ORIENTED SIDEBAR SECTION VIEWS ────────────────────────────────────────── */
 .nav-section-wrapper {
   display: flex;
   flex-direction: column;
@@ -3417,7 +3419,7 @@ textarea {
   backdrop-filter: blur(26px) saturate(170%);
   -webkit-backdrop-filter: blur(26px) saturate(170%);
   border: 1px solid var(--border-subtle);
-  box-shadow: 255, 255, 0.2), 0 10px 30px rgba(var(--shadow), 0.25);
+  box-shadow: none;
   border-radius: 16px;
   padding: 16px;
   display: flex;
@@ -3430,7 +3432,7 @@ textarea {
   border-color: rgba(var(--ink), 0.38);
   background: rgba(var(--ink), 0.12);
   transform: translateY(-2px);
-  box-shadow: 255, 255, 0.35), 0 14px 40px rgba(var(--shadow), 0.3);
+  box-shadow: none;
 }
 
 .card-top-row {
@@ -3513,7 +3515,7 @@ textarea {
   backdrop-filter: blur(26px) saturate(170%);
   -webkit-backdrop-filter: blur(26px) saturate(170%);
   border: 1px solid var(--border-subtle);
-  box-shadow: 255, 255, 0.2), 0 10px 30px rgba(var(--shadow), 0.25);
+  box-shadow: none;
   border-radius: 14px;
   padding: 14px 16px;
   display: flex;
@@ -3617,22 +3619,22 @@ textarea {
 @keyframes minimalBorderShift {
   0% {
     border-color: rgba(var(--ink), 0.55);
-    box-shadow: 0 4px 16px rgba(var(--ink), 0.12);
+    box-shadow: none;
   }
 
   33% {
     border-color: rgba(225, 0, 255, 0.55);
-    box-shadow: 0 4px 16px rgba(225, 0, 255, 0.12);
+    box-shadow: none;
   }
 
   66% {
     border-color: rgba(var(--ink), 0.55);
-    box-shadow: 0 4px 16px rgba(var(--ink), 0.12);
+    box-shadow: none;
   }
 
   100% {
     border-color: rgba(var(--ink), 0.55);
-    box-shadow: 0 4px 16px rgba(var(--ink), 0.12);
+    box-shadow: none;
   }
 }
 
@@ -3768,13 +3770,13 @@ textarea {
      background gives the same frosted-glass look without the cost. */
   background: rgba(16, 14, 22, 0.55) !important;
   border: 1px solid rgba(var(--ink), 0.12) !important;
-  box-shadow: 0 8px 32px 0 rgba(var(--shadow), 0.25), inset 0 1px 0 0 rgba(var(--ink), 0.1);
+  box-shadow: none;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .glass-chat-bubble:hover {
   border-color: rgba(var(--ink), 0.3) !important;
-  box-shadow: 0 8px 32px 0 rgba(var(--shadow), 0.35), 0 0 16px rgba(var(--ink), 0.15);
+  box-shadow: none;
 }
 
 .chat-bubble-row.user .user-bubble {
@@ -3882,7 +3884,7 @@ textarea {
   flex-shrink: 0;
   border-radius: 50%;
   background: rgba(var(--ink), 0.05);
-  box-shadow: 0 0 24px rgba(var(--ink), 0.15);
+  box-shadow: none;
 }
 
 .thinking-bubble {
@@ -3893,7 +3895,7 @@ textarea {
   border-radius: 14px;
   background: rgba(16, 14, 22, 0.75);
   border: 1px solid rgba(var(--ink), 0.25);
-  box-shadow: 0 0 30px rgba(var(--ink), 0.1);
+  box-shadow: none;
 }
 
 @keyframes logoPulseSpin {
@@ -4016,7 +4018,7 @@ textarea {
   color: var(--text-primary);
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ COMPREHENSIVE RESPONSIVE MEDIA QUERIES Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ──── COMPREHENSIVE RESPONSIVE MEDIA QUERIES ────────────────────────── */
 
 /* Mobile Nav Toggle Buttons (Hidden by default on Desktop) */
 .mobile-nav-btn {
@@ -4043,7 +4045,7 @@ textarea {
   display: none;
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ DESKTOP MEDIUM (1024px - 1340px) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ──── DESKTOP MEDIUM (1024px - 1340px) ────────────────────────── */
 @media (max-width: 1340px) {
   .right-rail {
     width: 290px;
@@ -4071,7 +4073,7 @@ textarea {
   }
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ TABLET LANDSCAPE & PORTRAIT (768px - 1023px) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ──── TABLET LANDSCAPE & PORTRAIT (768px - 1023px) ────────────────────────── */
 @media (max-width: 1023px) {
   .mobile-nav-btn {
     display: flex;
@@ -4103,7 +4105,7 @@ textarea {
     height: calc(100vh - 20px) !important;
     z-index: 100 !important;
     width: 260px !important;
-    box-shadow: 0 20px 50px rgba(var(--shadow), 0.7) !important;
+    box-shadow: none !important;
     transform: translateX(0);
     transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease !important;
   }
@@ -4124,7 +4126,7 @@ textarea {
     height: calc(100vh - 20px) !important;
     z-index: 100 !important;
     width: 320px !important;
-    box-shadow: 0 20px 50px rgba(var(--shadow), 0.7) !important;
+    box-shadow: none !important;
     transform: translateX(0);
     transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease !important;
   }
@@ -4181,7 +4183,7 @@ textarea {
   }
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ MOBILE DEVICES (< 767px) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ──── MOBILE DEVICES (< 767px) ────────────────────────── */
 @media (max-width: 767px) {
   .topbar {
     height: 58px;
@@ -4291,7 +4293,7 @@ textarea {
   }
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ GOOGLE CALENDAR MODAL (Glass Container & Sharp 4px Edges) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ──── GOOGLE CALENDAR MODAL (Glass Container & Sharp 4px Edges) ────────────────────────── */
 .gcal-backdrop {
   position: fixed;
   inset: 0;
@@ -4319,7 +4321,7 @@ textarea {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border: 1px solid var(--border-strong) !important;
-  box-shadow: inset 0 1px 0 rgba(var(--ink), 0.22), 0 16px 40px rgba(var(--shadow), 0.4) !important;
+  box-shadow: none !important;
   border-radius: 20px !important;
   display: flex;
   flex-direction: column;
@@ -4404,7 +4406,7 @@ textarea {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 2px 6px rgba(var(--shadow), 0.05);
+  box-shadow: none;
   outline: none;
 }
 
@@ -4412,7 +4414,7 @@ textarea {
   background: #FFFFFF;
   border-color: #D2CED8;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(var(--shadow), 0.1);
+  box-shadow: none;
 }
 
 .liquid-white-btn.btn-icon-only {
@@ -4424,13 +4426,13 @@ textarea {
   background: #0C0A11;
   color: var(--text-primary);
   border: 1px solid #0C0A11;
-  box-shadow: 0 4px 14px rgba(12, 10, 17, 0.25);
+  box-shadow: none;
 }
 
 .liquid-white-btn.btn-primary-glass:hover {
   background: #16131D;
   color: var(--text-primary);
-  box-shadow: 0 6px 18px rgba(12, 10, 17, 0.35);
+  box-shadow: none;
 }
 
 .apple-white-btn.btn-danger-white {
@@ -4481,7 +4483,7 @@ textarea {
   width: 200px;
   background: var(--bg-base);
   border-color: #C77DFF;
-  box-shadow: 0 0 0 3px rgba(199, 125, 255, 0.15);
+  box-shadow: none;
 }
 
 .gcal-search-clear {
@@ -4516,7 +4518,7 @@ textarea {
 .gcal-tab-btn.active {
   background: var(--bg-base);
   color: var(--text-primary);
-  box-shadow: 0 2px 6px rgba(var(--shadow), 0.08);
+  box-shadow: none;
 }
 
 /* Body & Views */
@@ -4571,7 +4573,7 @@ textarea {
 
 .gcal-day-cell:hover {
   border-color: #C77DFF;
-  box-shadow: 0 4px 12px rgba(var(--shadow), 0.06);
+  box-shadow: none;
 }
 
 .gcal-day-cell.cell-outside {
@@ -4601,7 +4603,7 @@ textarea {
 .badge-today {
   background: #C77DFF;
   color: var(--text-primary) !important;
-  box-shadow: 0 2px 6px rgba(199, 125, 255, 0.4);
+  box-shadow: none;
 }
 
 .gcal-event-count {
@@ -4629,7 +4631,7 @@ textarea {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  box-shadow: 0 1px 3px rgba(var(--shadow), 0.1);
+  box-shadow: none;
   transition: transform 0.15s ease;
 }
 
@@ -4736,13 +4738,13 @@ textarea {
   justify-content: space-between;
   gap: 16px;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(var(--shadow), 0.04);
+  box-shadow: none;
   transition: transform 0.15s ease;
 }
 
 .gcal-day-event-card:hover {
   transform: translateX(4px);
-  box-shadow: 0 4px 14px rgba(var(--shadow), 0.08);
+  box-shadow: none;
 }
 
 .day-event-time {
@@ -4795,7 +4797,7 @@ textarea {
   max-width: 440px;
   background: var(--bg-base);
   border-radius: 20px;
-  box-shadow: 0 20px 50px rgba(var(--shadow), 0.25);
+  box-shadow: none;
   padding: 24px;
   color: var(--text-primary);
   animation: popIn 0.2s ease-out;
@@ -4916,7 +4918,7 @@ textarea {
 .gcal-form-input:focus {
   border-color: #C77DFF;
   background: var(--bg-base);
-  box-shadow: 0 0 0 3px rgba(199, 125, 255, 0.15);
+  box-shadow: none;
 }
 
 @keyframes fadeIn {
@@ -4941,7 +4943,7 @@ textarea {
   }
 }
 
-/* â”€â”€â”€ SYSTEM STATUS EXPANDED DRAWER & GRAPH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ──── SYSTEM STATUS EXPANDED DRAWER & GRAPH ────────────────────────── */
 .sidebar-sys-card {
   transition: all 260ms cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -4960,7 +4962,7 @@ textarea {
 .sys-square-tile--active {
   background: rgba(var(--ink), 0.12) !important;
   border-color: var(--accent-mint) !important;
-  box-shadow: 0 0 12px rgba(var(--ink), 0.25);
+  box-shadow: none;
 }
 
 .sys-collapse-btn {
@@ -5070,7 +5072,7 @@ textarea {
   font-size: 10.5px;
 }
 
-/* â”€â”€â”€ DUAL-AXIS SCROLLABLE CALENDAR & MEETINGS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ──── DUAL-AXIS SCROLLABLE CALENDAR & MEETINGS ────────────────────────── */
 .calendar-scroll-strip {
   display: flex;
   gap: 6px;
@@ -5114,7 +5116,7 @@ textarea {
 .cal-date-chip--active {
   background: var(--accent-mint-pale) !important;
   border-color: var(--accent-mint) !important;
-  box-shadow: 0 0 12px rgba(var(--ink), 0.25);
+  box-shadow: none;
 }
 
 .cal-date-day {
@@ -5170,7 +5172,7 @@ textarea {
   border: 1px dashed var(--border-subtle);
 }
 
-/* â”€â”€â”€ TASKS OF THE DAY RAIL PANEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ──── TASKS OF THE DAY RAIL PANEL ────────────────────────────────────────── */
 .rail-tasks-list {
   display: flex;
   flex-direction: column;
@@ -5251,7 +5253,7 @@ textarea {
   gap: 4px;
 }
 
-/* â”€â”€â”€ TASKS NO-SIDE-SCROLL ENFORCEMENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ──── TASKS NO-SIDE-SCROLL ENFORCEMENT ────────────────────────────────────────── */
 .rail-tasks-list,
 .task-list-container,
 .rail-task-item,
@@ -5260,7 +5262,7 @@ textarea {
   max-width: 100%;
 }
 
-/* â”€â”€â”€ APPLE macOS ELEGANT CALENDAR UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ──── APPLE macOS ELEGANT CALENDAR UI ────────────────────────────────────────── */
 .mac-cal-backdrop {
   position: fixed;
   inset: 0;
@@ -5283,7 +5285,7 @@ textarea {
   border-radius: 16px;
   background: rgba(22, 26, 32, 0.92);
   border: 1px solid rgba(var(--ink), 0.15);
-  box-shadow: 0 30px 90px rgba(var(--shadow), 0.75), 0 0 0 1px rgba(var(--ink), 0.1);
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -5384,7 +5386,7 @@ textarea {
 .mac-seg-btn--active {
   background: rgba(var(--ink), 0.2) !important;
   color: var(--text-primary) !important;
-  box-shadow: 0 2px 8px rgba(var(--shadow), 0.3);
+  box-shadow: none;
   font-weight: 600;
 }
 
@@ -5725,14 +5727,14 @@ textarea {
   padding: 2px 6px;
   border-radius: 4px;
   margin-left: 12px;
-  box-shadow: 0 2px 8px rgba(244, 63, 94, 0.5);
+  box-shadow: none;
 }
 
 .mac-line-bar {
   flex: 1;
   height: 2px;
   background: #F43F5E;
-  box-shadow: 0 0 6px rgba(244, 63, 94, 0.8);
+  box-shadow: none;
 }
 
 .mac-time-row {
@@ -5771,7 +5773,7 @@ textarea {
 
 .mac-event-block:hover {
   transform: scale(1.02);
-  box-shadow: 0 4px 12px rgba(var(--shadow), 0.4);
+  box-shadow: none;
 }
 
 .mac-event-bar {
@@ -5827,7 +5829,7 @@ textarea {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  box-shadow: 0 1px 4px rgba(var(--shadow), 0.3);
+  box-shadow: none;
 }
 
 .mac-allday-chip:hover {
@@ -5897,7 +5899,7 @@ textarea {
   font-weight: 700;
 }
 
-/* â”€â”€â”€ UNTITLED UI / GOOGLE CALENDAR STYLING â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ──── UNTITLED UI / GOOGLE CALENDAR STYLING ────────────────────────── */
 .uu-backdrop {
   position: fixed;
   inset: 0;
@@ -5920,7 +5922,7 @@ textarea {
   border-radius: 16px;
   background: rgba(18, 22, 28, 0.94);
   border: 1px solid rgba(var(--ink), 0.12);
-  box-shadow: 0 30px 90px rgba(var(--shadow), 0.8), 0 0 0 1px rgba(var(--ink), 0.08);
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   padding: 24px;
@@ -6221,7 +6223,7 @@ textarea {
   font-weight: 700;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(var(--ink), 0.15);
+  box-shadow: none;
   transition: transform 140ms ease;
 }
 
@@ -6355,12 +6357,12 @@ textarea {
   flex-direction: column;
   gap: 2px;
   transition: transform 140ms ease, box-shadow 140ms ease;
-  box-shadow: 0 2px 8px rgba(var(--shadow), 0.25);
+  box-shadow: none;
 }
 
 .uu-event-card-pastel:hover {
   transform: scale(1.02);
-  box-shadow: 0 4px 14px rgba(var(--shadow), 0.4);
+  box-shadow: none;
 }
 
 .uu-ev-card-title {
@@ -6435,7 +6437,7 @@ textarea {
   display: flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 8px 24px rgba(199, 125, 255, 0.4);
+  box-shadow: none;
   z-index: 1000;
   animation: slideInDown 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -6800,7 +6802,7 @@ textarea {
   gap: 6px;
 }
 
-/* â”€â”€â”€ WHITE GLASS & RESPONSIVE GOOGLE CALENDAR MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ──── WHITE GLASS & RESPONSIVE GOOGLE CALENDAR MODAL ────────────────────────── */
 .uu-backdrop {
   position: fixed;
   inset: 0;
@@ -6823,7 +6825,7 @@ textarea {
   border-radius: 20px;
   background: linear-gradient(135deg, rgba(22, 26, 36, 0.92) 0%, rgba(14, 16, 24, 0.96) 100%);
   border: 1px solid rgba(var(--ink), 0.16);
-  box-shadow: 0 30px 90px rgba(var(--shadow), 0.8), inset 0 1px 1px rgba(var(--ink), 0.25);
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   padding: 24px;
@@ -6841,7 +6843,7 @@ textarea {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: inset 0 1px 0 rgba(var(--ink), 0.15);
+  box-shadow: none;
 }
 
 .uu-grid-slot-cell {
@@ -6881,7 +6883,7 @@ textarea {
   -webkit-backdrop-filter: blur(28px);
   border: 1px solid rgba(var(--ink), 0.18);
   border-radius: 16px;
-  box-shadow: 0 24px 60px rgba(var(--shadow), 0.7), inset 0 1px 1px rgba(var(--ink), 0.25);
+  box-shadow: none;
   padding: 22px;
   display: flex;
   flex-direction: column;
@@ -6911,7 +6913,7 @@ textarea {
 .gcal-form-input:focus {
   border-color: rgba(var(--ink), 0.8);
   background: rgba(var(--ink), 0.1);
-  box-shadow: 0 0 14px rgba(var(--ink), 0.3);
+  box-shadow: none;
 }
 
 .gcal-form-input option {
@@ -7019,14 +7021,14 @@ textarea {
   cursor: pointer;
   overflow: hidden;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 14px rgba(var(--shadow), 0.2);
+  box-shadow: none;
 }
 
 .animated-theme-toggler-btn:hover {
   transform: scale(1.08) rotate(8deg);
   background: rgba(var(--ink), 0.12);
   border-color: rgba(var(--ink), 0.4);
-  box-shadow: 0 0 16px rgba(var(--ink), 0.3);
+  box-shadow: none;
 }
 
 .toggler-icon-wrapper {
@@ -7105,7 +7107,7 @@ textarea {
 .topbar-mode-btn:hover {
   background: rgba(var(--ink), 0.12);
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(var(--shadow), 0.2);
+  box-shadow: none;
 }
 
 .mode-online .mode-dot {
@@ -7154,7 +7156,7 @@ textarea {
   }
 }
 
-/* â”€â”€â”€ PLUS MODEL BUTTON & LM STUDIO MODEL HUB MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ──── PLUS MODEL BUTTON & LM STUDIO MODEL HUB MODAL ────────────────────────── */
 .btn-plus-model {
   display: flex;
   align-items: center;
@@ -7171,7 +7173,7 @@ textarea {
   color: var(--text-primary) !important;
   cursor: pointer;
   transition: all 160ms ease;
-  box-shadow: 0 2px 8px rgba(var(--shadow), 0.2);
+  box-shadow: none;
 }
 
 .btn-plus-model svg {
@@ -7185,14 +7187,14 @@ textarea {
   background: rgba(var(--ink), 0.15) !important;
   border-color: var(--text-primary) !important;
   transform: scale(1.03);
-  box-shadow: 0 0 14px rgba(var(--ink), 0.35);
+  box-shadow: none;
 }
 
 /* The composer and chat bar now use glassy backgrounds. */
 :root[data-theme='light'] .composer,
 :root[data-theme='light'] .composer--focused {
   border-color: var(--border-subtle) !important;
-  box-shadow: 0 10px 34px rgba(100, 100, 120, 0.16) !important;
+  box-shadow: none !important;
 }
 :root[data-theme='light'] .composer-input { color: var(--text-primary); }
 
@@ -7217,7 +7219,7 @@ textarea {
   background: rgba(18, 20, 24, 0.96);
   border: 1.5px solid rgba(var(--ink), 0.25);
   border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(var(--shadow), 0.85), 0 0 35px rgba(var(--ink), 0.1);
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -7333,13 +7335,13 @@ textarea {
   background: rgba(var(--ink), 0.09);
   border-color: rgba(var(--ink), 0.35);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(var(--shadow), 0.4);
+  box-shadow: none;
 }
 
 .lm-model-tile.selected {
   background: rgba(var(--ink), 0.14);
   border-color: rgba(var(--ink), 0.7);
-  box-shadow: 0 0 18px rgba(var(--ink), 0.25);
+  box-shadow: none;
 }
 
 .lm-tile-header {
@@ -7381,7 +7383,7 @@ textarea {
   color: var(--text-primary);
 }
 
-/* ─── GLOBAL CLEAN BUTTON & CONSISTENT SURFACE OVERRIDES ─────────── */
+/* ──── GLOBAL CLEAN BUTTON & CONSISTENT SURFACE OVERRIDES ─────────── */
 button,
 .btn-primary,
 .btn-secondary,
@@ -7580,7 +7582,7 @@ button:active,
 :root[data-theme='light'] .sidebar-liquid-inner {
   background: var(--bg-sidebar) !important;
   border-color: var(--border-subtle) !important;
-  box-shadow: 0 10px 30px rgba(100, 100, 120, 0.14) !important;
+  box-shadow: none !important;
 }
 
 :root[data-theme='light'] .nav-item { color: var(--text-secondary); }
@@ -7595,7 +7597,7 @@ button:active,
 :root[data-theme='light'] .composer--focused {
   background: var(--bg-base) !important;
   border-color: var(--border-subtle) !important;
-  box-shadow: 0 10px 34px rgba(100, 100, 120, 0.16) !important;
+  box-shadow: none !important;
 }
 :root[data-theme='light'] .composer-input { color: var(--text-primary); }
 

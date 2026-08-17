@@ -463,7 +463,15 @@ function Composer({
         </div>
       ) : (
         <div className="cv-input-stack">
-          {!dictation.recording && (
+          {dictation.recording ? (
+            <div className="composer-input cv-dictation-transcript" style={{ minHeight: '36px', padding: '6px 12px', color: 'var(--text-primary)', fontSize: '14px', lineHeight: '1.5', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+              {value ? (
+                <span>{value}</span>
+              ) : (
+                <span style={{ opacity: 0.5, fontStyle: 'italic' }}>Listening...</span>
+              )}
+            </div>
+          ) : (
             <textarea
               ref={ta}
               className="composer-input"
@@ -482,33 +490,6 @@ function Composer({
               aria-label="Message Sakhi"
             />
           )}
-          {/* While dictating, the waveform sits over the input and reacts to
-              real amplitude. Transcribed phrases drop into the textarea
-              underneath it as they land, so the box fills as you speak. */}
-          {dictation.recording && (
-            <div className="cv-dictation-layer" style={{ position: 'relative', height: '44px', paddingLeft: '12px' }}>
-              <LiveWaveform
-                active={dictation.capturing}
-                processing={dictation.transcribing}
-                level={level}
-                height={34}
-                barWidth={2}
-                barGap={2}
-                mode="scrolling"
-                historySize={72}
-                barColor="var(--text-primary)"
-              />
-              <span className="cv-dictation-state" style={{ position: 'absolute', left: '12px', zIndex: 10, mixBlendMode: 'difference', color: '#fff' }}>
-                {dictation.transcribing
-                  ? 'Transcribing…'
-                  : dictation.capturing
-                  ? 'Listening...'
-                  : dictation.silent
-                  ? 'Say something...'
-                  : 'Ready'}
-              </span>
-            </div>
-          )}
         </div>
       )}
 
@@ -520,16 +501,30 @@ function Composer({
 
       {dictation.error && <div className="cv-voice-note is-warn">{dictation.error.message}</div>}
 
-      <div className="composer-footer">
-        {!dictation.recording && (
-          <PlusMenu
-            onAttach={onAttach}
-            webSearch={webSearch}
-            onToggleWebSearch={onToggleWebSearch}
-            onOpenSettings={onOpenSettings}
-          />
+      <div className="composer-footer" style={{ alignItems: 'center' }}>
+        <PlusMenu
+          onAttach={onAttach}
+          webSearch={webSearch}
+          onToggleWebSearch={onToggleWebSearch}
+          onOpenSettings={onOpenSettings}
+        />
+
+        {dictation.recording && (
+          <div className="composer-center-waveform" style={{ flex: 1, margin: '0 12px', height: '24px', display: 'flex', alignItems: 'center' }}>
+            <LiveWaveform
+              active={dictation.capturing}
+              processing={dictation.transcribing}
+              level={level}
+              height={24}
+              barWidth={3}
+              barGap={2}
+              mode="static"
+              barColor="var(--text-primary)"
+            />
+          </div>
         )}
-        <div className="cv-composer-right" style={{ width: dictation.recording ? 'auto' : undefined }}>
+
+        <div className="cv-composer-right">
           {dictation.recording && (
             <button
               className="btn-mic-discard"
