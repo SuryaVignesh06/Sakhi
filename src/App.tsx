@@ -5,7 +5,7 @@ import {
   Paperclip, Mic, Globe, FileText, ArrowRight, ChevronRight, ChevronLeft, X,
   Brain, Cpu, HardDrive, Database, Calendar, Video, Search, Plus, Trash2, Edit3,
   Sparkles, Activity, Check, Menu, PanelRight, Send, Volume2, VolumeX, AudioLines,
-  Copy, ThumbsUp, ThumbsDown, Share2, RotateCcw, Download
+  Copy, ThumbsUp, ThumbsDown, Share2, RotateCcw, Download, Square
 } from 'lucide-react';
 import logoImg from './logo.png';
 import orbImg from './orb.png';
@@ -1120,6 +1120,16 @@ export const App = () => {
     stopped.current = false;
     pendingTurn.current = true;
 
+    // Reset current session state before starting new turn
+    push({
+      type: 'conversation.started',
+      payload: {
+        conversationId: conversationId || 'c_' + Date.now(),
+        provider: backendProvider(getSelected()),
+        model: getSelected()?.id,
+      },
+    } as any);
+
     // Only forward a model the user actually picked; otherwise the backend
     // resolves one itself (local runtimes first).
     const picked = getSelected();
@@ -1756,98 +1766,114 @@ export const App = () => {
               <div
                 className={`composer stagger-3 ${composerFocused ? 'composer--focused' : ''}`}
               >
-                <textarea
-                  ref={textareaRef}
-                  className="composer-input"
-                  placeholder="What's on your mind?"
-                  rows={2}
-                  value={chatInput}
-                  onChange={e => setChatInput(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                  onFocus={() => {
-                    setComposerFocused(true);
-                    if (activeTab === 'Home') {
-                      setActiveTab('Chat');
-                      setLeftSidebarOpen(false);
-                    }
-                  }}
-                  onBlur={() => setComposerFocused(false)}
-                  aria-label="What's on your mind?"
-                />
-                <div className="composer-footer">
-                  {/* Adds input to the conversation. The model lives in the top
-                      bar only — naming it here duplicated the selector. */}
+                <div className="cv-input-stack">
+                  {dictation.recording ? (
+                    <div className="composer-input cv-dictation-transcript" style={{ minHeight: '36px', padding: '6px 12px', color: 'rgba(255, 255, 255, 0.6)', opacity: 0.8, fontSize: '14px', lineHeight: '1.5', whiteSpace: 'pre-wrap', wordBreak: 'break-word', transition: 'all 0.2s ease' }}>
+                      {chatInput ? (
+                        <span>{chatInput}</span>
+                      ) : (
+                        <span style={{ opacity: 0.5, fontStyle: 'italic' }}>Listening...</span>
+                      )}
+                    </div>
+                  ) : (
+                    <textarea
+                      ref={textareaRef}
+                      className="composer-input"
+                      placeholder="What's on your mind?"
+                      rows={2}
+                      value={chatInput}
+                      onChange={e => setChatInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
+                      onFocus={() => {
+                        setComposerFocused(true);
+                        if (activeTab === 'Home') {
+                          setActiveTab('Chat');
+                          setLeftSidebarOpen(false);
+                        }
+                      }}
+                      onBlur={() => setComposerFocused(false)}
+                      aria-label="What's on your mind?"
+                    />
+                  )}
+                </div>
+                <div className="composer-footer" style={{ alignItems: 'center' }}>
                   <PlusMenu
                     onAttach={(a) => setAttachments((prev) => [...prev, ...a])}
                     webSearch={webSearch}
                     onToggleWebSearch={setWebSearch}
                     onOpenSettings={() => setActiveTab('Settings')}
                   />
-                  {/* While dictating, the waveform replaces the row of buttons:
-                      it is the only thing that matters at that moment, and it
-                      is driven by real microphone loudness rather than a timer,
-                      so a silent room reads as silent. */}
                   {dictation.recording && (
-                    <div className="composer-wave">
+                    <div className="composer-center-waveform" style={{ flex: 1, margin: '0 4px', height: '28px', display: 'flex', alignItems: 'center' }}>
                       <LiveWaveform
-                        active={!dictation.transcribing}
+                        active={dictation.recording}
                         processing={dictation.transcribing}
                         level={mic.level}
-                        height={26}
-                        barWidth={2}
+                        height={28}
+                        barWidth={3}
                         barGap={2}
-                        mode="scrolling"
-                        fadeEdges
-                        barColor="currentColor"
-                        historySize={64}
+                        sensitivity={4}
+                        fadeEdges={false}
+                        mode="static"
+                        barColor="var(--text-primary)"
                       />
-                      <span className="composer-wave-hint">
-                        {dictation.transcribing ? 'Transcribing…' : dictation.silent ? 'Listening…' : 'Speak now'}
-                      </span>
                     </div>
                   )}
 
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {/* Dictation: speak and the words land in the box as
-                        ordinary editable text. Separate from voice-call mode,
-                        which is the hands-free conversation. */}
+                    {dictation.recording && (
+                      <button
+                        className="btn-mic-discard"
+                        type="button"
+                        onClick={() => { dictation.stop(); setChatInput(''); }}
+                        title="Discard transcript"
+                        aria-label="Discard transcript"
+                      >
+                        <X size={15} strokeWidth={2} />
+                      </button>
+                    )}
                     <button
-                      className={`btn-mic ${dictation.recording ? 'is-recording' : ''}`}
+                      className={`btn-mic ${dictation.recording ? 'active is-recording' : ''}`}
                       type="button"
                       onClick={dictation.toggle}
                       title={dictation.recording ? 'Stop dictation' : 'Dictate into the box'}
                       aria-label={dictation.recording ? 'Stop dictation' : 'Dictate into the box'}
                       aria-pressed={dictation.recording}
                     >
-                      <Mic size={18} strokeWidth={1.75} aria-hidden="true" />
+                      {dictation.recording ? <Square size={14} fill="currentColor" /> : <Mic size={18} strokeWidth={1.75} aria-hidden="true" />}
                     </button>
-                    <button
-                      className={`btn-mic ${isVoiceModeActive ? 'active' : ''}`}
-                      type="button"
-                      onClick={() => setIsVoiceModeActive(!isVoiceModeActive)}
-                      title="Hands-free voice conversation"
-                      aria-label="Voice conversation mode"
-                      aria-pressed={isVoiceModeActive}
-                    >
-                      <AudioLines size={18} strokeWidth={1.75} aria-hidden="true" />
-                    </button>
-                    <button
-                      className={`btn-send ${chatInput.trim() ? 'is-ready' : 'is-hidden'}`}
-                      type="button"
-                      onClick={() => handleSendMessage()}
-                      disabled={!chatInput.trim()}
-                      tabIndex={chatInput.trim() ? 0 : -1}
-                      aria-hidden={!chatInput.trim()}
-                      title="Send message"
-                      aria-label="Send message"
-                    >
-                      <Send size={17} strokeWidth={1.9} />
-                    </button>
+
+                    {!dictation.recording && (
+                      <>
+                        <button
+                          className={`btn-mic ${isVoiceModeActive ? 'active' : ''}`}
+                          type="button"
+                          onClick={() => setIsVoiceModeActive(!isVoiceModeActive)}
+                          title="Hands-free voice conversation"
+                          aria-label="Voice conversation mode"
+                          aria-pressed={isVoiceModeActive}
+                        >
+                          <AudioLines size={18} strokeWidth={1.75} aria-hidden="true" />
+                        </button>
+                        <button
+                          className={`btn-send ${chatInput.trim() ? 'is-ready' : 'is-hidden'}`}
+                          type="button"
+                          onClick={() => handleSendMessage()}
+                          disabled={!chatInput.trim()}
+                          tabIndex={chatInput.trim() ? 0 : -1}
+                          aria-hidden={!chatInput.trim()}
+                          title="Send message"
+                          aria-label="Send message"
+                        >
+                          <Send size={17} strokeWidth={1.9} />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

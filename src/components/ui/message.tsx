@@ -49,24 +49,19 @@ export const MessageAvatar: React.FC<MessageAvatarProps> = ({ src, name, fallbac
       style={{
         width: '32px',
         height: '32px',
-        borderRadius: '50%',
-        overflow: 'hidden',
         flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        /* Built from the ink channel rather than hard-coded white: in light
-           mode `rgba(255,255,255,…)` made the avatar a white disc with white
-           initials on a white card. */
-        background: 'rgba(var(--ink), 0.10)',
-        border: '1px solid rgba(var(--ink), 0.15)',
+        background: 'transparent',
+        border: 'none',
         color: 'var(--text-primary)',
         fontSize: '12px',
         fontWeight: 600,
       }}
     >
       {src ? (
-        <img src={src} alt={name || 'Avatar'} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'var(--logo-filter)' }} />
+        <img src={src} alt={name || 'Avatar'} style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'var(--logo-filter)' }} />
       ) : (
         <span>{fallback || (name ? name.substring(0, 2).toUpperCase() : 'AI')}</span>
       )}
