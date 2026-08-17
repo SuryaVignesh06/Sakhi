@@ -19,6 +19,7 @@ export type LiveWaveformProps = HTMLAttributes<HTMLDivElement> & {
   historySize?: number
   updateRate?: number
   mode?: "scrolling" | "static"
+  level?: number
   onError?: (error: Error) => void
   onStreamReady?: (stream: MediaStream) => void
   onStreamEnd?: () => void
@@ -36,12 +37,13 @@ export const LiveWaveform = ({
   fadeWidth = 24,
   barHeight: baseBarHeight = 4,
   height = 64,
-  sensitivity = 1,
+  sensitivity = 3,
   smoothingTimeConstant = 0.8,
   fftSize = 256,
   historySize = 60,
   updateRate = 30,
   mode = "static",
+  level = 0,
   onError,
   onStreamReady,
   onStreamEnd,
@@ -344,35 +346,47 @@ export const LiveWaveform = ({
 
           if (mode === "static") {
             // For static mode, update bars in place
-            const startFreq = Math.floor(dataArray.length * 0.05)
-            const endFreq = Math.floor(dataArray.length * 0.4)
+            const startFreq = Math.floor(dataArray.length * 0.02)
+            const endFreq = Math.floor(dataArray.length * 0.6)
             const relevantData = dataArray.slice(startFreq, endFreq)
 
             const barCount = Math.floor(rect.width / (barWidth + barGap))
             const halfCount = Math.floor(barCount / 2)
             const newBars: number[] = []
 
+            // Calculate max energy from real FFT
+            let maxEnergy = 0
+            for (let k = 0; k < relevantData.length; k++) {
+              if (relevantData[k] > maxEnergy) maxEnergy = relevantData[k]
+            }
+
+            const useLevelFallback = maxEnergy < 5 && level > 0
+
             // Mirror the data for symmetric display
             for (let i = halfCount - 1; i >= 0; i--) {
-              const dataIndex = Math.floor(
-                (i / halfCount) * relevantData.length
-              )
-              const value = Math.min(
-                1,
-                (relevantData[dataIndex] / 255) * sensitivity
-              )
-              newBars.push(Math.max(0.05, value))
+              let value = 0
+              if (useLevelFallback) {
+                const norm = i / halfCount
+                const harmonic = Math.sin(norm * Math.PI) * (0.4 + 0.6 * Math.sin(currentTime * 0.01 + i * 0.4))
+                value = Math.min(1, level * 2.5 * harmonic)
+              } else {
+                const dataIndex = Math.floor((i / halfCount) * relevantData.length)
+                value = Math.min(1, (relevantData[dataIndex] / 255) * sensitivity * 1.5)
+              }
+              newBars.push(Math.max(0.06, value))
             }
 
             for (let i = 0; i < halfCount; i++) {
-              const dataIndex = Math.floor(
-                (i / halfCount) * relevantData.length
-              )
-              const value = Math.min(
-                1,
-                (relevantData[dataIndex] / 255) * sensitivity
-              )
-              newBars.push(Math.max(0.05, value))
+              let value = 0
+              if (useLevelFallback) {
+                const norm = i / halfCount
+                const harmonic = Math.sin(norm * Math.PI) * (0.4 + 0.6 * Math.sin(currentTime * 0.01 + i * 0.4))
+                value = Math.min(1, level * 2.5 * harmonic)
+              } else {
+                const dataIndex = Math.floor((i / halfCount) * relevantData.length)
+                value = Math.min(1, (relevantData[dataIndex] / 255) * sensitivity * 1.5)
+              }
+              newBars.push(Math.max(0.06, value))
             }
 
             staticBarsRef.current = newBars

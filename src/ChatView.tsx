@@ -380,7 +380,7 @@ const AssistantMessage = memo(function AssistantMessage({
   );
 });
 
-import { LiveWaveform } from './components/ui/live-waveform';
+import { LiveWaveform } from './components/ui/LiveWaveform';
 
 /* ─── COMPOSER ────────────────────────────────────────────────────── */
 
@@ -510,14 +510,16 @@ function Composer({
         />
 
         {dictation.recording && (
-          <div className="composer-center-waveform" style={{ flex: 1, margin: '0 12px', height: '24px', display: 'flex', alignItems: 'center' }}>
+          <div className="composer-center-waveform" style={{ flex: 1, margin: '0 4px', height: '28px', display: 'flex', alignItems: 'center' }}>
             <LiveWaveform
-              active={dictation.capturing}
+              active={dictation.recording}
               processing={dictation.transcribing}
               level={level}
-              height={24}
+              height={28}
               barWidth={3}
               barGap={2}
+              sensitivity={4}
+              fadeEdges={false}
               mode="static"
               barColor="var(--text-primary)"
             />
