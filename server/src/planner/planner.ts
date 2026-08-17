@@ -2,10 +2,10 @@ import { providers } from '../providers/manager.js';
 import { systemPrompt } from '../providers/openaiCompatible.js';
 import {
   ProviderUnavailable,
-  type ChatMessage, type ProviderId, type ToolCall,
+  type ChatMessage, type ProviderId,
 } from '../providers/types.js';
 import type { RequestHandle } from '../orchestrator/orchestrator.js';
-import type { AgentName } from '../events/protocol.js';
+
 
 /**
  * The user's stored memories, newest first, as plain lines.
@@ -70,10 +70,15 @@ async function recallMemories(projectId?: string, limit = 40): Promise<string[]>
     return [];
   }
 }
-import { tools, type ToolName } from '../tools/registry.js';
-import { ProseToolGate } from './proseTools.js';
+import { tools } from '../tools/registry.js';
+import { connections } from '../mcp/manager.js';
+import { supervise } from '../agents/supervisor.js';
+import { tryLocalIntent } from '../intents/local.js';
 import { db } from '../db/client.js';
 import { setActiveProject } from '../tools/memory.js';
+import { determineMode } from '../mode/connectivity.js';
+import { runAgenticCrawl } from '../crawler/Frontier.js';
+import { retrieveContext } from '../rag/Retriever.js';
 
 /**
  * The Planner reasons about a request and drives it to an answer, running any
@@ -95,26 +100,15 @@ export interface PlanInput {
   projectId?: string;
 }
 
-/** Hard stop on the agentic loop. Prevents a model looping on a failing tool. */
-const MAX_TOOL_ROUNDS = 5;
+/* The tool-round and nudge budgets moved to agents/specialist.ts, where the
+   loop they bound now lives — one budget per specialist rather than one for
+   the whole turn.
 
-/** How many times a malformed tool call is sent back for a retry. */
-const MAX_NUDGES = 2;
-
-/**
- * Routes to a specialist. Keyword-based for now: a model call to decide this
- * would double latency on every turn. When real specialists land this becomes
- * classification — the event contract does not change.
- */
-function selectAgent(message: string): AgentName {
-  const m = message.toLowerCase();
-  if (/\b(browse|website|url|google|search the web|open .*\.com)\b/.test(m)) return 'browser';
-  if (/\b(open|launch|start|window|clipboard|screenshot|notify)\b/.test(m)) return 'desktop';
-  if (/\b(code|function|bug|refactor|typescript|python|compile)\b/.test(m)) return 'coding';
-  if (/\b(remember|recall|memory|forget)\b/.test(m)) return 'memory';
-  if (/\b(research|compare|summari[sz]e|find out)\b/.test(m)) return 'research';
-  return 'planner';
-}
+   `selectAgent` is gone with them. It matched keywords against the raw
+   message and could not tell "open the pod bay doors" from "how do I open a
+   JAR file"; more to the point, nothing ever read its answer, so every
+   request ran the same generalist loop regardless. Routing is now a decision
+   the Supervisor makes about the actual request, and acts on. */
 
 /**
  * Picks the provider and model for this turn.
@@ -157,14 +151,64 @@ export async function plan(
 
   h.emit('planner.stage', { stage: 'Analyzing Context' });
   const conversationId = input.conversationId ?? (await db.newConversation()).id;
-  const history = await db.recentMessages(conversationId, 10);
+  const history_ = await db.recentMessages(conversationId, 10);
+
+  /* ── On-device shortcut ─────────────────────────────────────────
+     "Set the volume to 50%" is not a reasoning problem, and sending it to a
+     model is how it ends up being explained rather than done. Anything that
+     matches exactly runs here and answers in milliseconds; everything else
+     falls through untouched. */
+  const local = await tryLocalIntent(input.message);
+  if (local) {
+    h.emit('planner.stage', { stage: 'Executing', description: 'On-device command' });
+    h.emit('response.chunk', { text: local.text });
+    h.emit('planner.stage', { stage: 'Completed' });
+
+    await db.addMessage(conversationId, 'user', input.message);
+    await db.addMessage(conversationId, 'assistant', local.text, { provider: 'local', model: local.intent });
+    return { text: local.text, toolRounds: 0 };
+  }
 
   h.emit('planner.stage', { stage: 'Selecting Model' });
-  const { provider, model } = await selectProvider(h, input);
+
+  /* ── Mode Detection & Offline Fallback ─────────────────────────── */
+  const modeStatus = await determineMode();
+  h.emit('mode_determined', { mode: modeStatus.mode, reason: modeStatus.reason });
+
+  if (modeStatus.mode === 'offline' && input.provider && !['ollama', 'lmstudio'].includes(input.provider)) {
+    input.provider = 'ollama'; // Force fallback to local
+    input.model = undefined;
+    h.emit('notification', {
+      level: 'warn',
+      message: 'Internet is unavailable. Automatically switching to local models. Please select a local model (Ollama or LM Studio) in the settings if you prefer a different one.'
+    });
+  }
+
+  let { provider, model } = await selectProvider(h, input);
+  
+  if (modeStatus.mode === 'offline' && !provider.isLocal) {
+    try {
+      const fallback = await providers.resolve({ provider: 'ollama' });
+      provider = fallback.provider;
+      model = fallback.model;
+      h.emit('notification', {
+        level: 'warn',
+        message: 'Internet is unavailable. Automatically switching to local models. Please select a local model (Ollama or LM Studio) in the settings if you prefer a different one.'
+      });
+    } catch (e) {
+      h.emit('notification', {
+        level: 'error',
+        message: 'You are offline, but no local provider (Ollama/LM Studio) is configured. Please start a local model to continue.'
+      });
+      throw new Error('Offline but no local model configured.');
+    }
+  }
+
   h.emit('provider.selected', { provider: provider.id, model });
 
-  h.emit('planner.stage', { stage: 'Selecting Agent' });
-  h.emit('agent.selected', { agent: selectAgent(input.message) });
+  /* Agent selection is the Supervisor's decision now, and it is made against
+     the actual request rather than a keyword table — so it is emitted from
+     there, once it means something. */
 
   /* Tools are offered only when the provider can actually use them. Handing
      schemas to a provider that ignores them wastes context and, worse, invites
@@ -208,144 +252,65 @@ export async function plan(
     projectBrief(input.projectId),
   ]);
 
-  const messages: ChatMessage[] = [
-    systemPrompt(toolNames, memories, brief),
-    ...history.map((m) => ({ role: m.role as ChatMessage['role'], content: m.content })),
-    { role: 'user', content: input.message },
-  ];
+  /* The system prompt every agent shares. Each specialist appends its own
+     brief to this; the shared half is what keeps them one assistant rather
+     than a committee with different manners. */
+  const baseSystem = String(
+    systemPrompt(toolNames, memories, brief, schemas.length ? connections.summary() : '').content
+  );
 
-  let finalText = '';
-  let tokens: number | undefined;
-  let rounds = 0;
-  let nudges = 0;
+  const history: ChatMessage[] = history_.map((m) => ({
+    role: m.role as ChatMessage['role'],
+    content: m.content,
+  }));
 
-  /* Tool support is a property of the MODEL, not the provider. Ollama speaks
-     the tools API, but an individual tag like "Qwen:latest" may not implement
-     it and returns HTTP 400 "does not support tools". Degrading to a plain
-     completion is far better than failing the turn — the user still gets an
-     answer, and is told why the tools were unavailable. */
-  let toolsEnabled = schemas.length > 0;
-  const modelRejectsTools = (e: unknown) =>
-    /does not support tools|tools?\b.*not supported|unsupported.*tool/i.test((e as Error)?.message ?? '');
-
-  /* ── The agentic loop ────────────────────────────────────────────
-     Each pass: stream the model, and if it asked for tools, run them, append
-     the results, and go around again. Exits when the model stops asking. */
-  for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
-    h.emit('planner.stage', {
-      stage: round === 0 ? 'Generating Response' : 'Executing',
-      ...(round > 0 ? { description: `Continuing after tool round ${round}` } : {}),
-    });
-
-    let roundText = '';
-    let result;
-    /* Holds back the opening characters of the round so a model that "calls" a
-       tool by printing JSON never leaks that JSON into the answer. */
-    let gate = new ProseToolGate(schemas);
-
-    // One retry, tools stripped, if the model rejects them outright.
-    for (let attempt = 0; ; attempt++) {
-      try {
-        gate = new ProseToolGate(schemas);
-        const it = provider.stream({
-          model,
-          messages,
-          signal: h.signal,
-          ...(toolsEnabled ? { tools: schemas } : {}),
-        });
-
-        while (true) {
-          const { value, done } = await it.next();
-          if (done) {
-            result = value;
-            break;
-          }
-          if (value.thinking) h.emit('thinking.chunk', { text: value.thinking });
-          if (value.text) {
-            const show = gate.push(value.text);
-            if (show) {
-              roundText += show;
-              finalText += show;
-              h.emit('response.chunk', { text: show });
-            }
-          }
-        }
-        break;
-      } catch (e) {
-        if (attempt === 0 && toolsEnabled && modelRejectsTools(e)) {
-          toolsEnabled = false;
-          h.emit('notification', {
-            level: 'warn',
-            message: `${model} does not support tool calling — answering without tools.`,
-          });
-          continue;
-        }
-        throw e;
-      }
-    }
-
-    if (result?.tokens) tokens = (tokens ?? 0) + result.tokens;
-
-    /* Close the gate. `text` is whatever was held back and turned out to be a
-       real answer — showing it now keeps the transcript complete. */
-    const tail = gate.end();
-    if (tail.text) {
-      roundText += tail.text;
-      finalText += tail.text;
-      h.emit('response.chunk', { text: tail.text });
-    }
-
-    /* The model plainly tried to call a tool and produced something unreadable.
-       One corrective nudge is far better than either showing the user a JSON
-       blob or silently dropping the request. Budgeted so a model that cannot
-       get it right cannot spin. */
-    if (tail.retry && !result?.toolCalls?.length && nudges < MAX_NUDGES) {
-      nudges += 1;
-      h.emit('planner.stage', { stage: 'Executing', description: 'Retrying the tool call' });
-      messages.push({
-        role: 'user',
-        content:
-          'That was not a tool call — it was printed as text, so nothing ran. ' +
-          'Issue it as a real tool call now, or if no tool is needed, answer in plain prose.',
-      });
-      continue;
-    }
-
-    // A protocol-level call always wins; the prose parse is only a fallback.
-    const calls: ToolCall[] = result?.toolCalls?.length ? result.toolCalls : tail.calls;
-    if (!calls.length) break; // the model is done
-
-    if (round === MAX_TOOL_ROUNDS) {
-      // Out of budget. Tell the user rather than silently truncating.
-      h.emit('notification', {
-        level: 'warn',
-        message: `Stopped after ${MAX_TOOL_ROUNDS} tool rounds without a final answer.`,
-      });
-      break;
-    }
-
-    rounds += 1;
-    h.emit('planner.stage', {
-      stage: 'Executing',
-      description: `Running ${calls.map((c) => c.name).join(', ')}`,
-    });
-
-    // Record the assistant turn that requested the tools, then each result.
-    messages.push({ role: 'assistant', content: roundText, toolCalls: calls });
-
-    for (const call of calls) {
-      // invoke() handles permission, events, and error capture. It returns a
-      // string on every path, including denial, so the loop always continues.
-      const output = await tools.invoke(call.name as ToolName, call.args, h);
-      messages.push({
-        role: 'tool',
-        toolCallId: call.id,
-        name: call.name,
-        // Cap the payload: a huge tool result can blow the context window.
-        content: output.slice(0, 8000),
-      });
+  /* ── Mode Detection & Crawling ─────────────────────────────────── */
+  if (modeStatus.mode === 'online') {
+    h.emit('planner.stage', { stage: 'Analyzing Context', description: 'Checking intent' });
+    const isCommand = /^(open|play|turn on|write|create|run|start|generate|make|launch|set)\b/i.test(input.message.trim());
+    if (!isCommand) {
+      await runAgenticCrawl({ query: input.message, maxSources: 5, maxHops: 2 });
     }
   }
+
+  let augmentedMessage = input.message;
+  const ragChunks = await retrieveContext(input.message, 5);
+  
+  if (ragChunks.length > 0) {
+    if (modeStatus.mode === 'offline') {
+      const urls = Array.from(new Set(ragChunks.map(c => c.url)));
+      h.emit('local_rag_retrieval', { chunk_count: urls.length, sources: urls });
+    }
+    
+    const contextText = ragChunks.map((c, i) => `[Source ${i + 1}: ${c.url}]\n${c.text}`).join('\n\n');
+    augmentedMessage = `User Query: ${input.message}\n\nRetrieved Context:\n${contextText}\n\nPlease answer the query thoroughly using the context provided.`;
+  }
+
+  /* ── Hand off to the Supervisor ──────────────────────────────────
+     The loop that used to live here now lives in agents/specialist.ts, run
+     once per specialist. This function keeps what is genuinely per-turn —
+     provider choice, memory, persistence — and stops being the thing that
+     also does the work. */
+  const outcome = await supervise(h, {
+    message: augmentedMessage,
+    provider,
+    model,
+    baseSystem,
+    history,
+  });
+
+  let finalText = outcome.text;
+  if (ragChunks.length > 0) {
+    const urls = Array.from(new Set(ragChunks.map(c => c.url)));
+    finalText += `\n\n**Sources Consulted:**\n` + urls.map(url => {
+      try { return `- [${new URL(url).hostname}](${url})`; } 
+      catch { return `- ${url}`; }
+    }).join('\n');
+  }
+
+  const rounds = outcome.toolRounds;
+  const tokens: number | undefined = undefined;
+  const leadAgent = outcome.agentsUsed[0] ?? 'planner';
 
   h.emit('planner.stage', { stage: 'Completed' });
 
@@ -355,7 +320,7 @@ export async function plan(
     model,
     tokens,
   });
-  await db.logAgent(conversationId, selectAgent(input.message), provider.id, model);
+  await db.logAgent(conversationId, leadAgent, provider.id, model);
 
   return { text: finalText, tokens, toolRounds: rounds };
 }

@@ -1,6 +1,7 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { CheckCircle2, ChevronDown, ChevronRight, Loader2, Square, XCircle } from 'lucide-react';
 import type { SessionState, ToolCall } from '../events';
+import { ShimmeringText } from './ui/shimmering-text';
 
 /**
  * What the assistant is doing, and what it did to get there.
@@ -22,16 +23,16 @@ export type StatusKey =
   | 'waiting' | 'continuing';
 
 const STATUS: Record<StatusKey, { word: string }> = {
-  thinking:   { word: 'Thinking' },
-  analyzing:  { word: 'Analyzing' },
-  searching:  { word: 'Searching' },
-  reading:    { word: 'Reading' },
-  writing:    { word: 'Writing' },
-  coding:     { word: 'Coding' },
-  reviewing:  { word: 'Reviewing' },
-  processing: { word: 'Processing' },
-  waiting:    { word: 'Waiting for you' },
-  continuing: { word: 'Continuing' },
+  thinking:   { word: 'Reasoning...' },
+  analyzing:  { word: 'Analyzing task...' },
+  searching:  { word: 'Searching context...' },
+  reading:    { word: 'Reading files...' },
+  writing:    { word: 'Writing response...' },
+  coding:     { word: 'Executing tools...' },
+  reviewing:  { word: 'Reviewing output...' },
+  processing: { word: 'Analyzing request...' },
+  waiting:    { word: 'Waiting for permission...' },
+  continuing: { word: 'Continuing...' },
 };
 
 /** Which tools mean which word. Keyed on the backend's tool names. */
@@ -92,7 +93,9 @@ export function statusOf(s: SessionState): { key: StatusKey; detail?: string } {
     'Executing': 'processing',
     'Completed': 'reviewing',
   };
-  return { key: byStage[last.stage] ?? 'processing', detail: last.description };
+  const rawDetail = last.description;
+  const detail = rawDetail && /tools available/i.test(rawDetail) ? undefined : rawDetail;
+  return { key: byStage[last.stage] ?? 'processing', detail };
 }
 
 /* ─── ELAPSED ─────────────────────────────────────────────────────── */
@@ -170,7 +173,7 @@ const StatusWord = memo(function StatusWord({ word }: { word: string }) {
           on every character. */}
       <span className="ps-word-ghost" aria-hidden="true">{word}</span>
       <span className="ps-word">
-        {shown}
+        <ShimmeringText text={shown} />
         <span className="ps-type-caret" aria-hidden="true" />
       </span>
     </span>
@@ -183,9 +186,7 @@ const TraceRow = memo(function TraceRow({ t }: { t: ToolCall }) {
   return (
     <li className={`ps-trace-row ps-trace-row--${t.status}`}>
       <span className="ps-trace-icon">
-        {t.status === 'running' && <Loader2 size={16} className="ps-spin" />}
-        {t.status === 'completed' && <CheckCircle2 size={16} />}
-        {t.status === 'failed' && <XCircle size={16} />}
+        <ChevronRight size={14} className={t.status === 'running' ? 'ps-spin' : ''} />
       </span>
       <span className="ps-trace-body">
         <span className="ps-trace-label">{t.title || t.tool}</span>

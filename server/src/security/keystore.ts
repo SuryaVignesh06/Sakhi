@@ -21,6 +21,11 @@ import type { ProviderId } from '../providers/types.js';
 const DIR = path.join(process.cwd(), '.data');
 const VAULT = path.join(DIR, 'keys.vault');
 const SEED = path.join(DIR, '.seed');
+/* Connection credentials live in their own file rather than alongside the
+   provider keys: they are keyed by free-form names, not the fixed ProviderId
+   union, and keeping them separate means a corrupt connections vault cannot
+   cost the user their model API keys. */
+const SECRETS = path.join(DIR, 'secrets.vault');
 
 type Vault = Partial<Record<ProviderId, string>>;
 
@@ -103,6 +108,79 @@ export function maskKey(p: ProviderId): string | null {
   const k = getKey(p);
   if (!k) return null;
   return k.length <= 10 ? '••••' : `${k.slice(0, 6)}…${k.slice(-4)}`;
+}
+
+/* ─── Connection secrets ──────────────────────────────────────────────
+   The tokens an app connection needs (a GitHub PAT, a Slack bot token).
+   Same AES-256-GCM-at-rest treatment and the same honest threat model as the
+   provider keys above: this keeps them out of the plaintext connections file
+   and out of anything that gets committed, not out of the hands of code
+   already running as this user.
+
+   These are handed to a child process as environment variables at spawn time
+   and are never returned by any route — only a masked form is. */
+
+type SecretBag = Record<string, string>;
+let secretCache: SecretBag | null = null;
+
+function readSecrets(): SecretBag {
+  if (secretCache) return secretCache;
+  try {
+    if (!fs.existsSync(SECRETS)) return (secretCache = {});
+    const raw = fs.readFileSync(SECRETS);
+    const d = crypto.createDecipheriv('aes-256-gcm', masterKey(), raw.subarray(0, 12));
+    d.setAuthTag(raw.subarray(12, 28));
+    return (secretCache = JSON.parse(
+      Buffer.concat([d.update(raw.subarray(28)), d.final()]).toString('utf8')
+    ));
+  } catch (err) {
+    console.warn('[keystore] secrets vault unreadable, starting empty:', (err as Error).message);
+    return (secretCache = {});
+  }
+}
+
+function writeSecrets(v: SecretBag) {
+  ensureDir();
+  const iv = crypto.randomBytes(12);
+  const c = crypto.createCipheriv('aes-256-gcm', masterKey(), iv);
+  const body = Buffer.concat([c.update(JSON.stringify(v), 'utf8'), c.final()]);
+  fs.writeFileSync(SECRETS, Buffer.concat([iv, c.getAuthTag(), body]), { mode: 0o600 });
+  secretCache = v;
+}
+
+export function setSecret(name: string, value: string) {
+  const v = { ...readSecrets() };
+  if (value.trim()) v[name] = value.trim();
+  else delete v[name];
+  writeSecrets(v);
+}
+
+export function getSecret(name: string): string | undefined {
+  /* Env wins, so a machine can inject a token without it ever being written. */
+  return process.env[name] || readSecrets()[name] || undefined;
+}
+
+export function hasSecret(name: string): boolean {
+  return Boolean(getSecret(name));
+}
+
+export function deleteSecrets(names: string[]) {
+  const v = { ...readSecrets() };
+  let touched = false;
+  for (const n of names) {
+    if (n in v) {
+      delete v[n];
+      touched = true;
+    }
+  }
+  if (touched) writeSecrets(v);
+}
+
+/** Safe for API responses and logs. */
+export function maskSecret(name: string): string | null {
+  const s = getSecret(name);
+  if (!s) return null;
+  return s.length <= 10 ? '••••' : `${s.slice(0, 4)}…${s.slice(-4)}`;
 }
 
 export function listKeyStatus(): Record<string, { configured: boolean; masked: string | null; fromEnv: boolean }> {

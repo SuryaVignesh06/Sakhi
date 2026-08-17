@@ -51,24 +51,53 @@ const STEP_MS = 250;
 /** Ignore a second trigger inside this window; one wake per utterance. */
 const COOLDOWN_MS = 2500;
 
+/**
+ * Consecutive transcription failures before the loop stands down.
+ *
+ * Recognition happens on the backend, so with no backend running the wake
+ * word CANNOT fire — and this loop was still holding the microphone open and
+ * posting a ~90KB window four times a second, forever, from the moment the
+ * app launched. The capture itself runs through a ScriptProcessorNode, which
+ * is a main-thread callback, so the cost landed on the same thread as the UI.
+ * That combination is a large part of why the app felt like it seized up.
+ *
+ * After a few failures it releases the microphone entirely and just probes
+ * for the backend on a slow timer, picking straight back up when it returns.
+ */
+const FAIL_LIMIT = 3;
+
+/** How often to check whether the backend has come back. */
+const PROBE_MS = 20_000;
+
 export function useWakeWord(enabled: boolean, onWake: () => void) {
   const [listening, setListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const rec = useRef<PcmRecorder | null>(null);
   const timer = useRef<number | null>(null);
+  const probe = useRef<number | null>(null);
   const busy = useRef(false);
+  const fails = useRef(0);
   const lastFire = useRef(0);
   const onWakeRef = useRef(onWake);
   onWakeRef.current = onWake;
 
-  const stop = useCallback(() => {
+  /** Releases the microphone and the interval, but not the probe. */
+  const release = useCallback(() => {
     if (timer.current !== null) window.clearInterval(timer.current);
     timer.current = null;
     rec.current?.stop();
     rec.current = null;
+    busy.current = false;
     setListening(false);
   }, []);
+
+  const stop = useCallback(() => {
+    if (probe.current !== null) window.clearInterval(probe.current);
+    probe.current = null;
+    fails.current = 0;
+    release();
+  }, [release]);
 
   const start = useCallback(async () => {
     if (rec.current) return;
@@ -82,6 +111,7 @@ export function useWakeWord(enabled: boolean, onWake: () => void) {
     }
 
     rec.current = r;
+    fails.current = 0;
     setListening(true);
     setError(null);
 
@@ -114,6 +144,7 @@ export function useWakeWord(enabled: boolean, onWake: () => void) {
       busy.current = true;
       void transcribe(win, 'moonshine')
         .then((t) => {
+          fails.current = 0;
           const said = t?.text ?? '';
           if (!WAKE.test(said)) return;
           if (Date.now() - lastFire.current < COOLDOWN_MS) return;
@@ -122,14 +153,33 @@ export function useWakeWord(enabled: boolean, onWake: () => void) {
           rec.current?.drain();
           onWakeRef.current();
         })
-        .catch(() => {/* A missed window is not worth surfacing. */})
+        .catch(() => {
+          /* A single missed window is not worth surfacing. A run of them
+             means the recogniser is not there, and continuing to capture and
+             post is spending the user's CPU on something that cannot work. */
+          if (++fails.current >= FAIL_LIMIT) {
+            release();
+            setError('Wake word paused — speech backend not reachable.');
+          }
+        })
         .finally(() => { busy.current = false; });
     }, STEP_MS);
-  }, []);
+  }, [release]);
 
   useEffect(() => {
-    if (enabled) void start();
-    else stop();
+    if (!enabled) {
+      stop();
+      return stop;
+    }
+
+    void start();
+
+    /* Retry on a slow timer so the wake word comes back by itself once the
+       backend is up, without the caller having to know or restart anything. */
+    probe.current = window.setInterval(() => {
+      if (!rec.current) void start();
+    }, PROBE_MS);
+
     return stop;
   }, [enabled, start, stop]);
 

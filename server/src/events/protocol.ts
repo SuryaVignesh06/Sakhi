@@ -46,7 +46,18 @@ export type AppEvent =
   | Envelope<'task.started', { taskId: string; title: string }>
   | Envelope<'task.updated', { taskId: string; progress: number }>
   | Envelope<'task.completed', { taskId: string }>
-  | Envelope<'task.failed', { taskId: string; error: string }>;
+  | Envelope<'task.failed', { taskId: string; error: string }>
+  | Envelope<'mode_determined', { mode: 'online' | 'offline'; reason?: string }>
+  | Envelope<'discovery_start', { query: string }>
+  | Envelope<'discovery_complete', { query: string; candidate_count?: number }>
+  | Envelope<'frontier_select', { url: string; domain: string; reason: string; reasoning_provider: 'gemini' | 'openrouter'; source: 'candidate_pool' | 'discovered_link'; depth: number }>
+  | Envelope<'source_fetch_start', { id: string; url: string; domain: string; favicon_url: string }>
+  | Envelope<'source_fetch_complete', { id: string; url: string; domain: string; favicon_url: string; success: boolean }>
+  | Envelope<'embedding_start', { chunk_count?: number }>
+  | Envelope<'embedding_complete', { chunk_count?: number }>
+  | Envelope<'rag_indexed', { chunk_count?: number }>
+  | Envelope<'local_rag_retrieval', { chunk_count: number; sources: string[] }>
+  | Envelope<'search_trace_complete', { total_sources: number; total_hops: number }>;
 
 export type EventType = AppEvent['type'];
 export type PayloadOf<T extends EventType> = Extract<AppEvent, { type: T }>['payload'];

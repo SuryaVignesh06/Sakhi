@@ -4,6 +4,13 @@
    answer a different question, and the gaps between them are what keeps the
    grid from reading as one enormous table. */
 
+/* The "today" pink needs two values, not one. At #EC6A9C it reads beautifully
+   on the dark ground (6.7:1) but only reaches 3.0:1 on white — so in light
+   mode the one thing the eye should find first, today's column, was the
+   hardest thing on the page to see. Same hue, darkened enough to clear AA. */
+:root, :root[data-theme='dark'] { --pl-today: #EC6A9C; }
+:root[data-theme='light']       { --pl-today: #C93B72; }
+
 .pl-page {
   display: flex;
   flex-direction: column;
@@ -17,13 +24,18 @@
 .pl-greet h1 { font-size: 19px; font-weight: 600; letter-spacing: -0.01em; color: var(--text-primary); }
 .pl-greet p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
 
+/* Two columns by default; the third appears only when a task is selected.
+   `auto` rather than a fixed 320px so the track collapses to nothing when the
+   detail aside is not rendered, and the calendar takes the width back. */
 .pl-cols {
   display: grid;
-  grid-template-columns: 286px minmax(0, 1fr) 320px;
+  grid-template-columns: 286px minmax(0, 1fr) auto;
   gap: 14px;
   flex: 1;
   min-height: 0;
 }
+
+.pl-detail { width: 320px; }
 
 /* ─── CARD ────────────────────────────────────────────────────────── */
 .pl-card {
@@ -280,7 +292,7 @@
 }
 .pl-dayhead span { font-size: 11px; color: var(--text-faint); }
 .pl-dayhead.is-today strong,
-.pl-dayhead.is-today span { color: #EC6A9C; }
+.pl-dayhead.is-today span { color: var(--pl-today); }
 
 .pl-allday { border-top: 1px solid var(--border-subtle); padding: 5px 0; min-height: 30px; }
 .pl-alllabel {
@@ -405,7 +417,7 @@
 }
 .pl-cell.is-out { background: rgba(var(--ink), 0.03); }
 .pl-cell.is-out .pl-cellnum { opacity: 0.35; }
-.pl-cell.is-today { outline: 2px solid #EC6A9C; outline-offset: -2px; }
+.pl-cell.is-today { outline: 2px solid var(--pl-today); outline-offset: -2px; }
 
 .pl-cellnum {
   align-self: flex-start;

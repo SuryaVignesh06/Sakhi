@@ -233,14 +233,29 @@
 
 .ms-keynote {
   display: flex;
+  align-items: flex-start;
   gap: 6px;
   margin-top: 8px;
-  font-size: 10.5px;
+  font-size: 11px;
   line-height: 1.5;
   color: var(--text-faint);
 }
-.ms-keynote svg { flex-shrink: 0; margin-top: 1px; }
-.ms-keynote a { color: var(--accent-mint); }
+.ms-keynote span {
+  flex: 1;
+}
+.ms-keynote svg { flex-shrink: 0; margin-top: 2px; }
+.ms-keynote a,
+.ms-keylink {
+  color: var(--accent-mint);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.ms-keynote a:hover,
+.ms-keylink:hover {
+  filter: brightness(1.2);
+}
 
 /* ─── FILTERS ────────────────────────────────────────────────────── */
 .ms-filters {

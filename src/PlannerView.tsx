@@ -474,14 +474,14 @@ export default function PlannerView({
           )}
         </section>
 
-        {/* ── Detail ────────────────────────────────────────────────── */}
+        {/* ── Detail ──────────────────────────────────────────────────
+            Nothing selected means no column: an empty placeholder card held a
+            third of the page open to say "nothing here", and the calendar —
+            the thing the page is actually for — was squeezed to pay for it.
+            The column now appears only when there is a task to show. */}
+        {detail && (
         <aside className="pl-detail">
-          {!detail ? (
-            <div className="pl-card pl-nodetail">
-              <CalIcon size={22} />
-              <p>Pick a task to see its details, or click an empty slot to add one.</p>
-            </div>
-          ) : (
+          {(
             <>
               <div className="pl-card">
                 <header className="pl-detail-head">
@@ -631,6 +631,7 @@ export default function PlannerView({
             </>
           )}
         </aside>
+        )}
       </div>
 
       {slot && (

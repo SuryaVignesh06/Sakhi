@@ -177,6 +177,15 @@ export function systemPrompt(
   memories: string[] = [],
   /** The active project's instructions and knowledge, if any. */
   brief = '',
+  /**
+   * Which apps are connected right now.
+   *
+   * Their individual actions already ride in the request as schemas — this
+   * only names the apps, so the model can answer "what can you do with my
+   * Notion?" and can tell that `notion__search` and `github__create_issue`
+   * belong to different systems rather than being a flat pile of verbs.
+   */
+  connectedApps = '',
 ): ChatMessage {
   const base =
     'You are Sakhi, an AI assistant that runs on the user\'s own computer. ' +
@@ -194,6 +203,8 @@ export function systemPrompt(
   /* Placed ahead of the memories: a project's standing instructions set
      the frame that the recalled preferences then sit inside. */
   const project = brief ? `\n\n${brief}` : '';
+
+  const apps = connectedApps ? `\n\n${connectedApps}` : '';
 
   const recall = memories.length
     ? '\n\nWhat you already know about this user (do not ask them again):\n' +
@@ -233,7 +244,7 @@ export function systemPrompt(
   return {
     role: 'system',
     content:
-      `${base}${project}${recall}${learn}\n\n` +
+      `${base}${project}${apps}${recall}${learn}\n\n` +
       `You are running on this ${process.platform} machine and can act on it.
 ` +
       /**

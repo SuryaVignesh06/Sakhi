@@ -24,16 +24,27 @@ export function TextAnimate({
   duration = 0.28,
   ...props
 }: TextAnimateProps) {
+  /* Rich children (a rendered markdown tree, typically) animate as one block.
+     Two things matter here:
+
+     - it must be a BLOCK. This was a `motion.span`, and an inline element
+       wrapping the block-level output of the markdown renderer collapsed the
+       paragraph and heading spacing inside it.
+     - no blur. Animating `filter` on a whole answer forces the compositor to
+       re-rasterise the full text area every frame of the transition, which is
+       what made a long reply land with a visible stutter. Opacity and a small
+       translate give the same read for a fraction of the cost. */
   if (typeof children !== 'string') {
     return (
-      <motion.span
-        initial={{ opacity: 0, filter: 'blur(8px)', y: 8 }}
-        animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
-        transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        style={{ width: '100%', minWidth: 0 }}
         className={className}
       >
         {children}
-      </motion.span>
+      </motion.div>
     );
   }
 

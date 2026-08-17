@@ -7,6 +7,7 @@ import { api } from './routes/index.js';
 import { hub } from './events/emitter.js';
 import { db } from './db/client.js';
 import { closeBrowser } from './tools/browser.js';
+import { connections } from './mcp/manager.js';
 import { orchestrator } from './orchestrator/orchestrator.js';
 
 const PORT = Number(process.env.PORT ?? 3007);
@@ -41,6 +42,17 @@ server.listen(PORT, () => {
   console.log(`  events  ws://localhost:${PORT}/events`);
   console.log(`  events  http://localhost:${PORT}/api/events  (SSE)`);
   console.log(`  health  http://localhost:${PORT}/api/health`);
+
+  /* Connected apps are reattached in the background. Spawning connectors can
+     take seconds — an npx one may even download first — and none of that
+     should hold up the port the UI is waiting on. */
+  void connections.init().then(() => {
+    const live = connections.list().filter((c) => c.state === 'connected');
+    if (live.length) {
+      const total = live.reduce((n, c) => n + c.tools.length, 0);
+      console.log(`  apps    ${live.map((c) => c.label).join(', ')} (${total} actions)`);
+    }
+  });
 });
 
 /* Shut down cleanly: cancel in-flight work so upstream fetches abort rather
@@ -55,6 +67,9 @@ async function shutdown(signal: string) {
   // A headed Chromium outlives its parent otherwise, leaving a window the user
   // has to close by hand after the server is gone.
   await closeBrowser();
+  // Connector child processes are ours; leaving them running would orphan an
+  // npx-spawned server on every restart until the machine is rebooted.
+  await connections.shutdown();
   await db.disconnect();
   process.exit(0);
 }

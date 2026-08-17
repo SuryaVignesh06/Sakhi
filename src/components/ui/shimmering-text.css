@@ -1,0 +1,43 @@
+/* The shimmer runs a bright band across the glyphs. It was built from literal
+   white stops, so in light mode the whole label was white text clipped to
+   white text — the "Generating Response…" pill read as empty.
+
+   Both stops come from the ink channel now: near-opaque ink at the crest,
+   a dimmer ink either side. That reads as a highlight sweeping over dark
+   text on white exactly as it does over light text on black. */
+.shimmering-text {
+  background: linear-gradient(
+    90deg,
+    rgba(var(--ink), 0.40) 0%,
+    rgba(var(--ink), 0.98) 50%,
+    rgba(var(--ink), 0.40) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: shimmer-text-anim 2.2s infinite linear;
+  display: inline-block;
+  font-weight: 600;
+}
+
+@keyframes shimmer-text-anim {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Reduced motion: hold the crest colour rather than sweeping. The label still
+   has to be readable, so it falls back to a solid fill instead of nothing. */
+@media (prefers-reduced-motion: reduce) {
+  .shimmering-text {
+    animation: none;
+    background: none;
+    -webkit-text-fill-color: currentColor;
+    color: var(--text-primary);
+  }
+}

@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import type { ToolContext } from './registry.js';
-import { listProfiles, openChrome } from './chrome.js';
+import { listProfiles, openChrome, setDefaultProfile } from './chrome.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -117,7 +117,11 @@ function resolve(raw: string): { key: string; target: AppTarget[keyof AppTarget]
 }
 
 export interface DesktopArgs {
-  action: 'launch_app' | 'list_apps' | 'open_url' | 'notify' | 'list_profiles';
+  action:
+    | 'launch_app' | 'list_apps' | 'open_url' | 'notify'
+    | 'list_profiles' | 'set_default_profile';
+  /** For open_url: which browser to use, e.g. "chrome". */
+  browser?: string;
   /** For launch_app on Chrome: which signed-in profile to open. */
   profile?: string;
   app_name?: string;
@@ -224,7 +228,41 @@ export async function runDesktop(args: DesktopArgs, ctx: ToolContext): Promise<s
   }
 
   if (args.action === 'open_url') {
+    /* "Open it in Chrome" has to actually mean Chrome. Without this the URL
+       went to the OS default browser regardless of what was asked for. */
+    const want = String(args.browser ?? '').trim().toLowerCase();
+    if (/^(chrome|google\s*chrome)$/.test(want)) {
+      const res = await openChrome({ profile: args.profile, url: args.url });
+      if (!res.ok) return JSON.stringify({ success: false, error: res.error, profiles: res.choices });
+      return JSON.stringify({
+        success: true,
+        opened: args.url,
+        browser: 'chrome',
+        profile: res.profile?.name ?? null,
+      });
+    }
     return openUrl(args.url ?? '', ctx);
+  }
+
+  /* Remembering which account to use, so it only has to be asked once. */
+  if (args.action === 'set_default_profile') {
+    const name = String(args.profile ?? '').trim();
+    if (!name) return JSON.stringify({ success: false, error: 'A "profile" is required.' });
+    const profiles = await listProfiles();
+    const hit = profiles.find(
+      (p) =>
+        p.directory.toLowerCase() === name.toLowerCase() ||
+        p.name.toLowerCase() === name.toLowerCase() ||
+        p.name.toLowerCase().includes(name.toLowerCase())
+    );
+    if (!hit) {
+      return JSON.stringify({ success: false, error: `No Chrome profile matches "${name}".`, profiles });
+    }
+    await setDefaultProfile(hit.directory);
+    return JSON.stringify({
+      success: true,
+      message: `Chrome will open as ${hit.name}${hit.email ? ` (${hit.email})` : ''} from now on.`,
+    });
   }
 
   if (args.action === 'notify') {
@@ -248,7 +286,7 @@ export async function runDesktop(args: DesktopArgs, ctx: ToolContext): Promise<s
     return JSON.stringify({
       success: false,
       error: `Unsupported action "${args.action}".`,
-      actions: ['launch_app', 'list_apps', 'open_url', 'notify', 'list_profiles'],
+      actions: ['launch_app', 'list_apps', 'open_url', 'notify', 'list_profiles', 'set_default_profile'],
     });
   }
 
@@ -320,12 +358,13 @@ export const DESKTOP_SCHEMA = {
   properties: {
     action: {
       type: 'string',
-      enum: ['launch_app', 'list_apps', 'open_url', 'notify', 'list_profiles'],
+      enum: ['launch_app', 'list_apps', 'open_url', 'notify', 'list_profiles', 'set_default_profile'],
       description:
         'launch_app opens an installed application. list_apps returns what is available. ' +
         'open_url opens a web address in the default browser. notify shows a desktop notification. '
-        + 'list_profiles returns the Chrome accounts on this machine — call it before opening '
-        + 'Chrome, tell the user which accounts exist, and pass their choice back as `profile`.',
+        + 'list_profiles returns the Chrome accounts on this machine. set_default_profile '
+        + 'remembers one so Chrome always opens as that account — use it when the user says '
+        + 'which account to use by default.',
     },
     app_name: {
       type: 'string',
@@ -337,15 +376,26 @@ export const DESKTOP_SCHEMA = {
       type: 'string',
       description: 'For open_url. An absolute http or https URL, e.g. https://github.com.',
     },
+    browser: {
+      type: 'string',
+      description:
+        'For open_url: which browser to open it in, e.g. "chrome". Omit to use the '
+        + 'system default browser.',
+    },
     title: { type: 'string', description: 'For notify. Short heading.' },
     message: { type: 'string', description: 'For notify. The notification body.' },
-  },
+    /* `profile` used to sit here — one line below the closing brace of
+       `properties`, making it a sibling of `properties` rather than one of
+       them. The model was told in the action description to "pass their
+       choice back as `profile`" while the schema never declared the
+       parameter, so Chrome kept opening without one. */
     profile: {
       type: 'string',
       description:
         'For launch_app on Chrome: which account to open, by display name or email. '
         + 'Get the list from list_profiles first.',
     },
+  },
   required: ['action'],
 } as const;
 

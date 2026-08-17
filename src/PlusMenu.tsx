@@ -43,7 +43,6 @@ const MORE_ITEMS: { label: string; icon: typeof Download }[] = [
   { label: 'Import Workspace', icon: Upload },
   { label: 'Create Workspace', icon: Plus },
   { label: 'Open Recent Workspace', icon: Folder },
-  { label: 'Settings', icon: Settings },
   { label: 'Developer Tools', icon: Terminal },
 ];
 

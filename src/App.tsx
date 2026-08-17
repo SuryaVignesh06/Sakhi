@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import {
   Home, MessageCircle, FolderGit2, Box, CheckCircle, Users, Zap, LayoutGrid, Layers, Settings,
   ChevronDown, CheckSquare, Clock, TrendingUp, Circle, CheckCircle2,
   Paperclip, Mic, Globe, FileText, ArrowRight, ChevronRight, ChevronLeft, X,
   Brain, Cpu, HardDrive, Database, Calendar, Video, Search, Plus, Trash2, Edit3,
-  Sparkles, Activity, Check, Menu, PanelRight, Send, Volume2,
+  Sparkles, Activity, Check, Menu, PanelRight, Send, Volume2, VolumeX, AudioLines,
   Copy, ThumbsUp, ThumbsDown, Share2, RotateCcw, Download
 } from 'lucide-react';
 import logoImg from './logo.png';
@@ -21,6 +21,7 @@ import { useAssistantStream, useSessionFlags } from './useAssistantStream';
 import ChatView, { type ChatMessageItem } from './ChatView';
 import ProjectsView from './ProjectsView';
 import PlannerView from './PlannerView';
+import BooksView from './BooksView';
 import { type TaskItem } from './TasksView';
 import type { Project } from './api';
 import {
@@ -28,7 +29,10 @@ import {
   fetchSystem, LIVE_EVENTS_URL, sendChat, type SystemInfo,
 } from './api';
 import { getSelected } from './modelStore';
-import { preloadSpeech, speak as speakNow } from './speech';
+import { preloadSpeech, speak as speakNow, stopSpeaking } from './speech';
+import { useDictation } from './useDictation';
+import { useMicLevel } from './useMicLevel';
+import { LiveWaveform } from './components/ui/live-waveform';
 import { useWakeWord } from './useWakeWord';
 import { useVoiceCall } from './useVoiceCall';
 import PlusMenu, { type Attachment } from './PlusMenu';
@@ -39,6 +43,7 @@ import ChatPage from './components/Chat/ChatPage';
 import { TextAnimate } from '@/registry/magicui/text-animate';
 import VoiceAgentOverlay from './components/VoiceAgentOverlay';
 import { LiquidGlassCard } from './components/ui/liquid-glass';
+import GradientWaves from './components/ui/GradientWaves';
 
 /* ─── DASHBOARD GRAPHIC SVGS ────────────────────────────────────────── */
 const CardMiniWave = () => (
@@ -114,22 +119,94 @@ const BackgroundAnimation = ({ isDark = true }: { isDark?: boolean; paused?: boo
   );
 };
 
-/* ─── NAV DATA ───────────────────────────────────────────────────── */
-/* Only sections that do something. Agents, Automations, Tools and
-   Integrations were static mock-ups with no backing behaviour — navigation to
-   a page that cannot act is worse than no entry at all. Their components are
-   still in this file if any of them is built out later. */
-const NAV_ITEMS = [
-  { name: 'Home',        icon: Home },
-  /* Chat lived here as its own page, but the home screen already opens a
-     thread — two doors into one room. Projects is what was actually missing:
-     somewhere to keep separate pieces of work, each with its own memory. */
-  { name: 'Projects',    icon: FolderGit2 },
-  /* Tasks and Calendar were two views of the same day. Scheduling meant
-     holding one screen in your head while looking at the other, so they are
-     one page now — the rail, the week grid and the strips all read off the
-     same task list. */
-  { name: 'Planner',     icon: Calendar },
+/* ─── CUSTOM ICON COMPONENTS ─────────────────────────────────────── */
+interface CustomIconProps {
+  size?: number;
+  strokeWidth?: number;
+  className?: string;
+}
+
+const HomeCustomIcon = ({ size = 20, className = '' }: CustomIconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+    <path
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeWidth="2"
+      d="M8.737 8.737a21.49 21.49 0 0 1 3.308-2.724m0 0c3.063-2.026 5.99-2.641 7.331-1.3 1.827 1.828.026 6.591-4.023 10.64-4.049 4.049-8.812 5.85-10.64 4.023-1.33-1.33-.736-4.218 1.249-7.253m6.083-6.11c-3.063-2.026-5.99-2.641-7.331-1.3-1.827 1.828-.026 6.591 4.023 10.64m3.308-9.34a21.497 21.497 0 0 1 3.308 2.724m2.775 3.386c1.985 3.035 2.579 5.923 1.248 7.253-1.336 1.337-4.245.732-7.295-1.275M14 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z"
+    />
+  </svg>
+);
+
+const ProjectsCustomIcon = ({ size = 20, className = '' }: CustomIconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path
+      fillRule="evenodd"
+      d="M3 6a2 2 0 0 1 2-2h5.532a2 2 0 0 1 1.536.72l1.9 2.28H3V6Zm0 3v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9H3Z"
+      clipRule="evenodd"
+    />
+  </svg>
+);
+
+const PlannerCustomIcon = ({ size = 20, className = '' }: CustomIconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M9 6c0-1.65685 1.3431-3 3-3s3 1.34315 3 3-1.3431 3-3 3-3-1.34315-3-3Zm2 3.62992c-.1263-.04413-.25-.08799-.3721-.13131-1.33928-.47482-2.49256-.88372-4.77995-.8482C4.84875 8.66593 4 9.46413 4 10.5v7.2884c0 1.0878.91948 1.8747 1.92888 1.8616 1.283-.0168 2.04625.1322 2.79671.3587.29285.0883.57733.1863.90372.2987l.00249.0008c.11983.0413.24534.0845.379.1299.2989.1015.6242.2088.9892.3185V9.62992Zm2-.00374V20.7551c.5531-.1678 1.0379-.3374 1.4545-.4832.2956-.1034.5575-.1951.7846-.2653.7257-.2245 1.4655-.3734 2.7479-.3566.5019.0065.9806-.1791 1.3407-.4788.3618-.3011.6723-.781.6723-1.3828V10.5c0-.58114-.2923-1.05022-.6377-1.3503-.3441-.29904-.8047-.49168-1.2944-.49929-2.2667-.0352-3.386.36906-4.6847.83812-.1256.04539-.253.09138-.3832.13765Z" />
+  </svg>
+);
+
+const BooksCustomIcon = ({ size = 20, className = '' }: CustomIconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path
+      fillRule="evenodd"
+      d="M6 2a2 2 0 0 0-2 2v15a3 3 0 0 0 3 3h12a1 1 0 1 0 0-2h-2v-2h2a1 1 0 0 0 1-1V4a2 2 0 0 0-2-2h-8v16h5v2H7a1 1 0 1 1 0-2h1V2H6Z"
+      clipRule="evenodd"
+    />
+  </svg>
+);
+
+/* ─── NAV DATA ───────────────────────────────────────────────────────
+   The rail listed four destinations and then ran out, leaving most of a
+   1000px column empty — while Tasks, Calendar, Memory, Agents, Automations,
+   Tools and Integrations were all fully built views below with no way to
+   reach them. Every entry here routes to a branch that already exists in the
+   content switch; nothing is a placeholder.
+
+   Grouping rather than one long list: twelve undifferentiated rows is a menu
+   to be read, three labelled runs of four is a shape to be recognised. */
+const NAV_GROUPS: {
+  id: string;
+  label: string;
+  items: { name: string; icon: React.ComponentType<any>; label?: string }[];
+}[] = [
+  {
+    id: 'work',
+    label: 'Workspace',
+    items: [
+      { name: 'Home',     icon: HomeCustomIcon },
+      { name: 'Chat',     icon: MessageCircle },
+      { name: 'Projects', icon: ProjectsCustomIcon },
+      { name: 'Books',    icon: BooksCustomIcon },
+    ],
+  },
+  {
+    id: 'plan',
+    label: 'Plan',
+    items: [
+      { name: 'Planner',  icon: PlannerCustomIcon },
+      { name: 'Tasks',    icon: CheckSquare },
+      { name: 'Calendar', icon: Calendar },
+    ],
+  },
+  {
+    id: 'system',
+    label: 'System',
+    items: [
+      { name: 'Memory',       icon: Brain },
+      { name: 'Agents',       icon: Users },
+      { name: 'Automations',  icon: Zap },
+      { name: 'Tools',        icon: LayoutGrid },
+      { name: 'Integrations', icon: Layers },
+    ],
+  },
 ];
 
 /* ─── SYSTEM PROCESSES BREAKDOWN DATA ────────────────────────────── */
@@ -993,6 +1070,36 @@ export const App = () => {
     const text = (textOverride !== undefined ? textOverride : chatInput).trim();
     if (!text) return;
 
+    /* Answer a pending consent question in words.
+       Sakhi asks "shall I go ahead?" and then waits behind a card with two
+       buttons, which means the reply it invited — "yes" — does nothing, and
+       the turn is stuck until you notice the card and reach for the mouse.
+       An affirmative or a refusal is now taken as the answer.
+
+       Only these exact words count. Anything else is sent as an ordinary
+       message and the card stays up: guessing intent here would risk reading
+       consent into a sentence that never gave it. */
+    const pending = session.permissions[0];
+    if (pending) {
+      const t = text.toLowerCase().replace(/[!.]+$/, '').trim();
+      const yes = /^(y|ya|yes|yep|yeah|yup|ok|okay|sure|go ahead|do it|proceed|please do|confirm|allow)$/.test(t);
+      const no = /^(n|no|nope|nah|stop|cancel|don'?t|do not|deny|abort)$/.test(t);
+      if (yes || no) {
+        if (textOverride === undefined) setChatInput('');
+        setMessages(prev => [
+          ...prev,
+          {
+            id: `u${Date.now()}`,
+            sender: 'user',
+            text,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          },
+        ]);
+        await handlePermission(pending.id, yes, false);
+        return;
+      }
+    }
+
     setActiveTab('Chat');
     setLeftSidebarOpen(false);
 
@@ -1056,6 +1163,35 @@ export const App = () => {
      handleSendMessage exactly as typed text does, so tools, permissions,
      memory and history behave identically whichever way you talk to it. */
   const lastSpoken = useRef<string | undefined>(undefined);
+
+  /* Which message is being read right now, so its button can show as active
+     and a second press can stop it. */
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
+
+  /**
+   * Dictation into the composer.
+   *
+   * The engine settles one phrase at a time and hands each back, so the text
+   * builds up in the box as you talk and is ordinary editable text the moment
+   * you stop — no separate "transcript" state to accept or discard.
+   */
+  const dictation = useDictation({
+    offline: isOfflineMode,
+    onFinal: (said) =>
+      setChatInput((prev) => (prev ? `${prev.replace(/\s+$/, '')} ${said}` : said)),
+  });
+
+  /* Real microphone loudness, so the waveform reflects the room rather than
+     animating on a timer while nobody is speaking. */
+  const mic = useMicLevel(dictation.recording);
+
+  /* "Read every reply" — off by default. Remembered, because having to switch
+     it on every launch is what makes a feature like this go unused. */
+  const [speakReplies, setSpeakReplies] = useState<boolean>(false);
+  useEffect(() => {
+    try { localStorage.setItem('sakhi.speakReplies', String(speakReplies)); } catch { /* private mode */ }
+    if (!speakReplies) stopSpeaking();
+  }, [speakReplies]);
   const [replyToSpeak, setReplyToSpeak] = useState<string | undefined>();
 
   useEffect(() => {
@@ -1160,6 +1296,38 @@ export const App = () => {
     }
   }, [messages, isVoiceModeActive]);
 
+  /**
+   * Speak one reply, on request.
+   *
+   * This used to fire automatically on every finished answer whenever the
+   * toggle was on, which meant a long technical reply was read start to
+   * finish while you were already reading it. Reading aloud is useful when
+   * you ask for it and an imposition when you do not, so it is now a button
+   * per message. The header toggle keeps the hands-free behaviour for anyone
+   * who does want every answer spoken.
+   */
+  const speakMessage = useCallback((id: string, text: string) => {
+    if (speakingId === id) {
+      stopSpeaking();
+      setSpeakingId(null);
+      return;
+    }
+    setSpeakingId(id);
+    void speakNow(text)
+      .catch(() => { /* the text is on screen; synthesis failing is not fatal */ })
+      .finally(() => setSpeakingId(cur => (cur === id ? null : cur)));
+  }, [speakingId]);
+
+  /* Opt-in "read everything" — off unless asked for, and stands down during a
+     voice call, which owns playback itself. */
+  useEffect(() => {
+    if (!speakReplies || isVoiceModeActive || isSending) return;
+    const last = [...messages].reverse().find(m => m.sender === 'assistant');
+    if (!last?.text || last.id === lastSpoken.current) return;
+    lastSpoken.current = last.id;
+    void speakNow(last.text).catch(() => {});
+  }, [messages, speakReplies, isVoiceModeActive, isSending]);
+
   /* Live captions, from whichever part of the utterance exists right now. */
   useEffect(() => {
     if (!isVoiceModeActive) return;
@@ -1197,14 +1365,34 @@ export const App = () => {
   };
 
   return (
-    <div className={`app-shell ${mounted ? 'app-mounted' : ''} ${activeTab === 'Chat' ? 'app-shell--chat-active' : ''}`}>
-      {/* Background Shader Gradient Animation (Behind full window including sidebar) */}
-      {/* `applied`, not `preference` — a preference of "system" resolves to
-          one of the two, and the shader needs the resolved value. */}
-      <BackgroundAnimation isDark={applied === 'dark'} />
+    <div className={`app-shell ${mounted ? 'app-mounted' : ''} ${activeTab === 'Chat' ? 'app-shell--chat-active' : ''}`}
+      style={{
+        position: 'relative', // Needed so the absolute GradientWaves sits nicely
+        background: 'transparent'
+      }}>
+      <GradientWaves
+        horizonColor={applied === 'dark' ? '#0A0A10' : '#FFFFFF'}
+        waveColor={applied === 'dark' ? '#7C3AED' : '#5227FF'}
+        crestColor={applied === 'dark' ? '#C084FC' : '#FF9FFC'}
+        speed={0.4}
+        amplitude={2.5}
+        waveScale={0.6}
+        waveRatio={0.9}
+        swell={35}
+        turbulence={20}
+        tilt={1.11}
+        zoom={1}
+        height={5.5}
+        fogDepth={15}
+        detail="medium"
+        brightness={1}
+        opacity={1}
+        mouseInteraction
+        parallaxStrength={0.5}
+        grain
+        grainIntensity={0.05}
+      />
 
-      {/* Full-Window Smooth Frosted Glass Overlay */}
-      <div className="app-global-blur-overlay" aria-hidden="true" />
 
       {/* Mobile Overlay Backdrop */}
       {leftSidebarOpen && (
@@ -1216,30 +1404,19 @@ export const App = () => {
         />
       )}
 
-      {/* Left Edge Arrow Open Trigger (Shown when sidebar is closed) */}
-      {!leftSidebarOpen && (
-        <button
-          className="edge-trigger-btn left-edge-btn"
-          onClick={() => setLeftSidebarOpen(true)}
-          title="Open Navigation"
-          aria-label="Open Navigation Sidebar"
-        >
-          <ChevronRight size={22} strokeWidth={2.2} />
-        </button>
-      )}
-
       {/* ══════════ LEFT SIDEBAR CARD (ROUNDED FLOATING LIQUID GLASS) ══════════ */}
-      <nav className={`sidebar ${leftSidebarOpen ? 'sidebar--open' : 'sidebar--closed'}`} aria-label="Main navigation">
+      <nav className="sidebar" aria-label="Main navigation">
         <LiquidGlassCard
           glowIntensity="sm"
-          shadowIntensity="md"
-          borderRadius="24px"
-          blurIntensity="md"
+          shadowIntensity="sm"
+          borderRadius="12px"
+          blurIntensity="sm"
+          draggable
           className="sidebar-liquid-inner"
         >
           <div className="sidebar-header">
             <div className="sidebar-brand">
-              <img src={logoImg} alt="" className={`sidebar-brand-logo ${busy ? 'sidebar-brand-logo--loading' : ''}`} />
+              <img src={logoImg} alt="" className="sidebar-brand-logo" />
               <span className="sidebar-brand-name">Sakhi</span>
             </div>
             <button
@@ -1252,25 +1429,50 @@ export const App = () => {
             </button>
           </div>
 
-          {/* Nav List */}
-          <ul className="nav-list" role="list">
-            {NAV_ITEMS.map(({ name, icon: Icon }) => (
-              <li key={name}>
-                <button
-                  className={`nav-item ${activeTab === name ? 'nav-item--active' : ''}`}
-                  onClick={() => {
-                    setActiveTab(name);
-                    if (window.innerWidth < 768) setLeftSidebarOpen(false);
-                  }}
-                  aria-current={activeTab === name ? 'page' : undefined}
-                  title={name}
-                >
-                  <Icon size={18} strokeWidth={1.8} className="nav-icon" />
-                  <span className="nav-text">{name}</span>
-                </button>
-              </li>
+          {/* Nav List.
+              Scrolls internally rather than pushing the account card off the
+              bottom — the rail has to hold twelve rows on a laptop screen. */}
+          <div className="nav-list">
+            {NAV_GROUPS.map((group) => (
+              <div className="nav-group" key={group.id}>
+                {/* Collapsed, the label has nowhere to go, so the rule alone
+                    carries the separation. Expanded, it gets its name back. */}
+                <div className="nav-group-label" aria-hidden="true">
+                  <span>{group.label}</span>
+                </div>
+                <ul className="nav-group-items" role="list" aria-label={group.label}>
+                  {group.items.map(({ name, icon: Icon, label }) => (
+                    <li key={name}>
+                      <button
+                        className={`nav-item ${activeTab === name ? 'nav-item--active' : ''}`}
+                        onClick={() => {
+                          setActiveTab(name);
+                          if (window.innerWidth < 768) setLeftSidebarOpen(false);
+                        }}
+                        aria-current={activeTab === name ? 'page' : undefined}
+                        title={label ?? name}
+                      >
+                        <Icon size={18} strokeWidth={1.8} className="nav-icon" />
+                        <span className="nav-text">{label ?? name}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-          </ul>
+          </div>
+
+          {/* Settings sits with the account rather than in a group: it is
+              about you, not about the workspace. */}
+          <button
+            className={`nav-item nav-item--foot ${activeTab === 'Settings' ? 'nav-item--active' : ''}`}
+            onClick={() => setActiveTab('Settings')}
+            aria-current={activeTab === 'Settings' ? 'page' : undefined}
+            title="Settings"
+          >
+            <Settings size={18} strokeWidth={1.8} className="nav-icon" />
+            <span className="nav-text">Settings</span>
+          </button>
 
           {/* Account card + profile menu */}
           <div className="account-wrap" ref={profileRef} style={{ marginTop: 'auto' }}>
@@ -1331,8 +1533,6 @@ export const App = () => {
 
       {/* ══════════ MAIN COLUMN ══════════ */}
       <main className="main-col">
-        {/* Inner Frame Smooth Backdrop Blur Overlay */}
-        <div className="app-global-blur-overlay" aria-hidden="true" />
         {/* Top Header Bar (Hidden on Calendar view to maximize screen frame) */}
         {/* Planner carries its own header, so the app topbar would be a
             second one stacked above it. */}
@@ -1380,6 +1580,20 @@ export const App = () => {
               >
                 <span className="mode-dot" />
                 <span className="mode-label">{isOfflineMode ? 'Offline Mode' : 'Online Mode'}</span>
+              </button>
+
+              {/* Read replies aloud while typing. Kokoro was previously only
+                  reachable inside a voice call, so most of the time the
+                  speech engine was loaded and silent. */}
+              <button
+                type="button"
+                className={`topbar-mode-btn ${speakReplies ? 'mode-online' : ''}`}
+                onClick={() => setSpeakReplies(v => !v)}
+                aria-pressed={speakReplies}
+                title={speakReplies ? 'Replies are read aloud — click to mute' : 'Read replies aloud'}
+              >
+                {speakReplies ? <Volume2 size={14} /> : <VolumeX size={14} />}
+                <span className="mode-label">{speakReplies ? 'Voice On' : 'Voice Off'}</span>
               </button>
 
               <AnimatedThemeToggler theme={applied} onToggle={toggleTheme} />
@@ -1439,6 +1653,14 @@ export const App = () => {
                 if (p) setActiveTab('Home');
               }}
             />
+          ) : activeTab === 'Books' ? (
+            <BooksView
+              onAskAI={(prompt) => {
+                setChatInput(prompt);
+                setActiveTab('Home');
+                handleSendMessage(prompt);
+              }}
+            />
           ) : activeTab === 'Chat' ? (
             <ChatView
               messages={messages}
@@ -1480,43 +1702,55 @@ export const App = () => {
             <IntegrationsSectionView />
           ) : (
             <>
-              {/* Main Greeting Column */}
-              <div className="content-hero stagger-1">
-                <h1 className="greeting-line-1">
-                  <span className="g-light">Good afternoon,</span>{' '}
-                  <span className="g-bold">Surya</span>
-                </h1>
-                <h2 className="greeting-line-2">
-                  <span className="g-light">What would you like to</span>{' '}
-                  <span className="g-bold">build today?</span>
-                </h2>
-              </div>
+              {/* The greeting and the starter cards are a *welcome*, so they
+                  belong to an empty thread only. 'Home' and 'Chat' both land in
+                  this branch, so switching tabs never dismissed them: the
+                  answer appended underneath the hero and the screen ended up
+                  showing a greeting, three prompts and a reply all at once. */}
+              {messages.length === 0 && (
+                <>
+                  <div className="content-hero stagger-1">
+                    <h1 className="greeting-line-1">
+                      <span className="g-light">Good afternoon,</span>{' '}
+                      <span className="g-bold">Surya</span>
+                    </h1>
+                    <h2 className="greeting-line-2">
+                      <span className="g-light">What would you like to</span>{' '}
+                      <span className="g-bold">build today?</span>
+                    </h2>
+                  </div>
 
-              {/* Suggestions / Prompt Starters Grid */}
-              <div className="cards-row stagger-2">
-                {ACTION_CARDS.map((card, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    className="action-card"
-                    onClick={() => {
-                      setChatInput(card.prompt);
-                      setActiveTab('Chat');
-                      setLeftSidebarOpen(false);
-                    }}
-                    style={{ '--bloom-color': card.bloomColor } as React.CSSProperties}
-                  >
-                    <span className={`card-chip ${card.chipClass}`}>{card.chip}</span>
-                    <p className="card-body">{card.body}</p>
-                    <ArrowRight size={18} className="card-arrow" aria-hidden="true" />
-                  </button>
-                ))}
-              </div>
+                  <div className="cards-row stagger-2">
+                    {ACTION_CARDS.map((card, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        className="action-card"
+                        onClick={() => {
+                          setChatInput(card.prompt);
+                          setActiveTab('Chat');
+                          setLeftSidebarOpen(false);
+                        }}
+                        style={{ '--bloom-color': card.bloomColor } as React.CSSProperties}
+                      >
+                        <span className={`card-chip ${card.chipClass}`}>{card.chip}</span>
+                        <p className="card-body">{card.body}</p>
+                        <ArrowRight size={18} className="card-arrow" aria-hidden="true" />
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
 
               {/* Live backend execution — planner stages, tool cards, thinking,
                   streaming response. Renders only events that actually arrived;
                   with no backend connected it renders nothing at all. */}
-              <AssistantStream s={session} logoSrc={logoImg} />
+              <AssistantStream
+                s={session}
+                logoSrc={logoImg}
+                speaking={speakingId === 'current'}
+                onSpeak={() => speakMessage('current', session.response)}
+              />
 
               {/* Compact Composer Chat Bar */}
               <div
@@ -1554,15 +1788,53 @@ export const App = () => {
                     onToggleWebSearch={setWebSearch}
                     onOpenSettings={() => setActiveTab('Settings')}
                   />
+                  {/* While dictating, the waveform replaces the row of buttons:
+                      it is the only thing that matters at that moment, and it
+                      is driven by real microphone loudness rather than a timer,
+                      so a silent room reads as silent. */}
+                  {dictation.recording && (
+                    <div className="composer-wave">
+                      <LiveWaveform
+                        active={!dictation.transcribing}
+                        processing={dictation.transcribing}
+                        level={mic.level}
+                        height={26}
+                        barWidth={2}
+                        barGap={2}
+                        mode="scrolling"
+                        fadeEdges
+                        barColor="currentColor"
+                        historySize={64}
+                      />
+                      <span className="composer-wave-hint">
+                        {dictation.transcribing ? 'Transcribing…' : dictation.silent ? 'Listening…' : 'Speak now'}
+                      </span>
+                    </div>
+                  )}
+
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {/* Dictation: speak and the words land in the box as
+                        ordinary editable text. Separate from voice-call mode,
+                        which is the hands-free conversation. */}
                     <button
-                      className={`btn-mic ${isVoiceModeActive ? 'active' : ''} ${flags.recording ? 'is-recording' : ''}`}
+                      className={`btn-mic ${dictation.recording ? 'is-recording' : ''}`}
                       type="button"
-                      onClick={() => setIsVoiceModeActive(!isVoiceModeActive)}
-                      title="Toggle Voice Mode"
-                      aria-label="Voice input toggle"
+                      onClick={dictation.toggle}
+                      title={dictation.recording ? 'Stop dictation' : 'Dictate into the box'}
+                      aria-label={dictation.recording ? 'Stop dictation' : 'Dictate into the box'}
+                      aria-pressed={dictation.recording}
                     >
                       <Mic size={18} strokeWidth={1.75} aria-hidden="true" />
+                    </button>
+                    <button
+                      className={`btn-mic ${isVoiceModeActive ? 'active' : ''}`}
+                      type="button"
+                      onClick={() => setIsVoiceModeActive(!isVoiceModeActive)}
+                      title="Hands-free voice conversation"
+                      aria-label="Voice conversation mode"
+                      aria-pressed={isVoiceModeActive}
+                    >
+                      <AudioLines size={18} strokeWidth={1.75} aria-hidden="true" />
                     </button>
                     <button
                       className={`btn-send ${chatInput.trim() ? 'is-ready' : 'is-hidden'}`}

@@ -1,1 +1,30 @@
+# Dependencies
 node_modules
+
+# Build output
+dist
+build
+server/dist
+
+# Secrets and local state — NEVER commit these.
+# .seed is the master key material for keys.vault; committing either one
+# (let alone both) publishes every API key stored in it.
+.env
+.env.*
+!.env.example
+server/.env
+server/.data/
+**/.seed
+**/*.vault
+
+# Local database
+*.db
+*.db-journal
+server/prisma/.data/
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log

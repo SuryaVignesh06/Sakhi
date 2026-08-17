@@ -9,7 +9,11 @@ import { providers } from '../providers/manager.js';
 import { tools } from '../tools/registry.js';
 import { answerPermission, isAutoApprove, listPending } from '../tools/permissions.js';
 import { db } from '../db/client.js';
-import { listKeyStatus, setKey } from '../security/keystore.js';
+import { hasSecret, listKeyStatus, setKey, setSecret } from '../security/keystore.js';
+import { connections } from '../mcp/manager.js';
+import { listAgents } from '../agents/registry.js';
+import { CATALOG, catalogEntry } from '../mcp/catalog.js';
+import type { ConnectionConfig } from '../mcp/types.js';
 import { ProviderUnavailable, type ProviderId } from '../providers/types.js';
 
 export const api = Router();
@@ -170,6 +174,10 @@ api.post('/providers/:id/key', async (req, res) => {
   if (typeof key !== 'string') return res.status(400).json({ error: 'A "key" string is required.' });
 
   setKey(id, key);
+  if (!key.trim()) {
+    return res.json({ ok: true, models: 0, keys: listKeyStatus() });
+  }
+
   // Prove the key works before reporting success — a stored-but-dead key is
   // worse than a rejected one.
   try {
@@ -178,6 +186,12 @@ api.post('/providers/:id/key', async (req, res) => {
   } catch (e) {
     res.status(400).json({ ok: false, error: (e as Error).message, keys: listKeyStatus() });
   }
+});
+
+api.delete('/providers/:id/key', (req, res) => {
+  const id = req.params.id as ProviderId;
+  setKey(id, '');
+  res.json({ ok: true, keys: listKeyStatus() });
 });
 
 /* ─── SPEECH ──────────────────────────────────────────────────────── */
@@ -433,6 +447,141 @@ api.get('/projects/:id/memories', async (req, res) => {
 /* ─── TOOLS ───────────────────────────────────────────────────────── */
 
 api.get('/tools', (_req, res) => res.json({ tools: tools.list() }));
+
+/* ─── AGENTS ──────────────────────────────────────────────────────
+   The real roster, read from the registry the Supervisor actually routes
+   to. Settings used to render a hardcoded list of seven toggles that matched
+   no code and switched nothing; showing what genuinely exists is worth more
+   than a panel of controls that lie. */
+
+api.get('/agents', (_req, res) => {
+  res.json({
+    agents: listAgents().map((a) => ({
+      name: a.name,
+      title: a.title,
+      purpose: a.purpose,
+      /* Empty `tools` means the generalist, which is offered everything. */
+      tools: a.tools.length ? a.tools : ['(all tools)'],
+      usesConnectedApps: a.connectionTools === true,
+    })),
+  });
+});
+
+/* ─── APP CONNECTIONS (MCP) ───────────────────────────────────────
+   Connect an app, Sakhi asks it what it can do, and those actions join the
+   tool list. See mcp/types.ts for why discovery rather than hardcoding. */
+
+api.get('/connections', (_req, res) => {
+  res.json({ connections: connections.list(), catalog: CATALOG });
+});
+
+/** Creates a connection from a catalogue entry, filling in its inputs and secrets. */
+api.post('/connections/catalog/:catalogId', async (req, res) => {
+  const entry = catalogEntry(req.params.catalogId);
+  if (!entry) return res.status(404).json({ error: `No connector called "${req.params.catalogId}".` });
+
+  const { inputs = {}, secrets = {}, id, label } = req.body ?? {};
+
+  for (const need of entry.inputs ?? []) {
+    if (!String(inputs[need.name] ?? '').trim()) {
+      return res.status(400).json({ error: `"${need.label}" is required.` });
+    }
+  }
+
+  /* Written before connecting: buildTransport reads them from the vault, so a
+     token still in the request body would not be found. */
+  for (const s of entry.secrets ?? []) {
+    const val = secrets[s.name];
+    if (typeof val === 'string' && val.trim()) setSecret(s.name, val);
+    if (!hasSecret(s.name)) {
+      return res.status(400).json({ error: `"${s.label}" is required.` });
+    }
+  }
+
+  const substitute = (v: string) =>
+    v.replace(/\{\{(\w+)\}\}/g, (_m, k) => String(inputs[k] ?? ''));
+
+  const config: ConnectionConfig = {
+    ...entry.template,
+    args: entry.template.args?.map(substitute),
+    url: entry.template.url ? substitute(entry.template.url) : undefined,
+    id: String(id || entry.id).toLowerCase().replace(/[^a-z0-9_-]/g, '-'),
+    label: String(label || entry.label),
+    catalogId: entry.id,
+    enabled: true,
+  };
+
+  try {
+    res.json({ connection: await connections.add(config) });
+  } catch (e) {
+    res.status(400).json({ error: (e as Error).message });
+  }
+});
+
+/** Creates a connection by hand — any MCP server, catalogue or not. */
+api.post('/connections', async (req, res) => {
+  const { id, label, transport, command, args, url, headers, secrets = {}, env } = req.body ?? {};
+
+  if (typeof id !== 'string' || !id.trim()) return res.status(400).json({ error: 'An "id" is required.' });
+  if (transport !== 'stdio' && transport !== 'http') {
+    return res.status(400).json({ error: 'transport must be "stdio" or "http".' });
+  }
+  if (transport === 'stdio' && !command) return res.status(400).json({ error: 'A "command" is required for stdio.' });
+  if (transport === 'http' && !url) return res.status(400).json({ error: 'A "url" is required for http.' });
+
+  for (const [name, value] of Object.entries(secrets as Record<string, string>)) {
+    if (typeof value === 'string' && value.trim()) setSecret(name, value);
+  }
+
+  const config: ConnectionConfig = {
+    id: id.toLowerCase().replace(/[^a-z0-9_-]/g, '-'),
+    label: String(label || id),
+    transport,
+    ...(transport === 'stdio'
+      ? { command: String(command), args: Array.isArray(args) ? args.map(String) : [], env: env ?? {} }
+      : { url: String(url), headers: headers ?? {}, ...(req.body.authSecret ? { authSecret: String(req.body.authSecret) } : {}) }),
+    enabled: true,
+  };
+
+  try {
+    res.json({ connection: await connections.add(config) });
+  } catch (e) {
+    res.status(400).json({ error: (e as Error).message });
+  }
+});
+
+api.post('/connections/:id/connect', async (req, res) => {
+  try {
+    res.json({ connection: await connections.connect(req.params.id) });
+  } catch (e) {
+    res.status(400).json({ error: (e as Error).message });
+  }
+});
+
+api.post('/connections/:id/disconnect', async (req, res) => {
+  try {
+    res.json({ connection: await connections.disconnect(req.params.id) });
+  } catch (e) {
+    res.status(400).json({ error: (e as Error).message });
+  }
+});
+
+api.post('/connections/:id/refresh', async (req, res) => {
+  try {
+    res.json({ connection: await connections.refresh(req.params.id) });
+  } catch (e) {
+    res.status(400).json({ error: (e as Error).message });
+  }
+});
+
+api.delete('/connections/:id', async (req, res) => {
+  try {
+    await connections.remove(req.params.id);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ error: (e as Error).message });
+  }
+});
 
 /* ─── CONVERSATIONS ───────────────────────────────────────────────── */
 

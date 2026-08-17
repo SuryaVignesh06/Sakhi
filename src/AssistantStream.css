@@ -26,9 +26,12 @@
   width: 18px;
   height: 18px;
   object-fit: contain;
-  filter: brightness(0) invert(1);
+  /* `brightness(0) invert(1)` is the DARK half of `--logo-filter` — it flattens
+     the art to black and then inverts it to white. Hard-coded here, the mark
+     stayed white in light mode, so the spinner in the process header was a
+     white silhouette on a white card. The token carries both halves. */
+  filter: var(--logo-filter);
   box-shadow: none !important;
-  drop-shadow: none !important;
 }
 /* Rotates with NO GLOW while a turn is live. Minimized size. */
 .as-mark.is-active img {
@@ -222,66 +225,11 @@
 .as-notice--warn { border-color: rgba(251, 191, 36, 0.3); }
 .as-notice--error { border-color: rgba(248, 113, 113, 0.35); color: #F87171; }
 
-.as-perm {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 11px 12px;
-  border-radius: var(--r-md);
-  border: 1px solid rgba(251, 191, 36, 0.35);
-  background: rgba(251, 191, 36, 0.07);
-}
-.as-perm > svg { color: #FBBF24; flex-shrink: 0; }
-.as-perm-main { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.as-perm-main b { font-size: 12.5px; color: var(--text-primary); font-weight: 600; }
-.as-perm-main span { font-size: 11.5px; color: var(--text-muted); }
-.as-perm-btns { display: flex; gap: 7px; flex-shrink: 0; }
-.as-perm-btns button {
-  padding: 6px 13px;
-  border-radius: var(--r-sm);
-  font-size: 12px;
-  font-weight: 550;
-  border: 1px solid var(--border-subtle);
-}
-.as-deny { background: rgba(var(--ink), 0.05); color: var(--text-muted); }
-.as-allow { background: var(--accent-mint); color: #05231F; border-color: transparent; }
-
-/* ─── RESPONSE + MARKDOWN ────────────────────────────────────────── */
-.as-response { font-size: 14px; line-height: 1.65; color: var(--text-secondary); }
-
-.as-caret {
-  display: inline-block;
-  width: 7px;
-  height: 15px;
-  margin-left: 2px;
-  vertical-align: text-bottom;
-  background: var(--accent-mint);
-  animation: asBlink 1s steps(2) infinite;
-}
-@keyframes asBlink { 50% { opacity: 0; } }
-
-.as-meta {
-  display: flex;
-  gap: 12px;
-  margin-top: 10px;
-  padding-top: 9px;
-  border-top: 1px solid var(--border-subtle);
-  font-size: 11px;
-  color: var(--text-faint);
-}
-
-.as-md > *:first-child { margin-top: 0; }
-.as-md > *:last-child { margin-bottom: 0; }
-.as-p { margin: 0 0 10px; }
-.as-h { margin: 16px 0 8px; color: var(--text-primary); font-weight: 650; line-height: 1.35; }
-h3.as-h { font-size: 17px; }
-h4.as-h { font-size: 15px; }
-h5.as-h { font-size: 13.5px; }
-h6.as-h { font-size: 12.5px; }
-
-.as-ul { margin: 0 0 10px; padding-left: 20px; }
-.as-ul li { margin-bottom: 4px; }
-
+/* This block had lost its selector — it opened straight into `margin: 0 0
+   10px;` at the top level, which is a parse error, not merely a dead rule.
+   esbuild reported it on every build and browsers dropped tokens recovering
+   from it. It is the blockquote callout; the fuller version now lives in
+   markdown.css, and this stays as the base so the file parses cleanly. */
 .as-quote {
   margin: 0 0 10px;
   padding: 9px 13px;
@@ -423,3 +371,43 @@ h6.as-h { font-size: 12.5px; }
   margin-bottom: 4px;
 }
 
+
+/* ── Speak-this-answer control ─────────────────────────────────────────
+   Reading aloud is on request rather than automatic, so it needs a visible
+   affordance. It sits with the token/duration meta because it is about the
+   finished answer, not about composing a new one. */
+.as-speak {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: 7px;
+  padding: 3px 9px;
+  font: inherit;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.as-speak:hover {
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+  background: var(--bg-hover);
+}
+.as-speak.is-speaking {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.as-speak:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+.as-caret {
+  display: inline-block;
+  width: 7px;
+  height: 15px;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: var(--text-primary) !important;
+  animation: asBlink 1s steps(2) infinite;
+}
+@keyframes asBlink { 50% { opacity: 0; } }

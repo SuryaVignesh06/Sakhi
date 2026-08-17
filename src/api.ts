@@ -102,6 +102,25 @@ export interface ToolStatus {
   description: string;
   requiresPermission: boolean;
   implemented: boolean;
+  source: { kind: 'builtin' } | { kind: 'connection'; connectionId: string };
+}
+
+export interface AgentInfo {
+  name: string;
+  title: string;
+  purpose: string;
+  tools: string[];
+  usesConnectedApps: boolean;
+}
+
+/** The real specialists the Supervisor routes to. */
+export async function fetchAgents(): Promise<AgentInfo[]> {
+  try {
+    const r = await fetch(`${API_BASE}/api/agents`, { signal: AbortSignal.timeout(4000) });
+    return r.ok ? (await r.json()).agents ?? [] : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function fetchTools(): Promise<ToolStatus[]> {
@@ -163,6 +182,107 @@ export async function fetchHealth(): Promise<{ ok: boolean; database?: { ok: boo
     return null;
   }
 }
+
+/* ─── APP CONNECTIONS ─────────────────────────────────────────────────
+   Connect an app and Sakhi asks it what it can do. Nothing about any
+   specific app is written into this frontend — the action list on a card is
+   whatever that app reported about itself. */
+
+export interface DiscoveredTool {
+  name: string;
+  qualifiedName: string;
+  description: string;
+  readOnly: boolean;
+  destructive: boolean;
+}
+
+export interface Connection {
+  id: string;
+  label: string;
+  transport: 'stdio' | 'http';
+  enabled: boolean;
+  state: 'disconnected' | 'connecting' | 'connected' | 'error';
+  serverName?: string;
+  serverVersion?: string;
+  tools: DiscoveredTool[];
+  resourceCount: number;
+  promptCount: number;
+  error?: string;
+  connectedAt?: number;
+  catalogId?: string;
+  credentials: { name: string; configured: boolean; masked: string | null }[];
+}
+
+export interface CatalogEntry {
+  id: string;
+  label: string;
+  blurb: string;
+  category: string;
+  secrets?: { name: string; label: string; help?: string }[];
+  inputs?: { name: string; label: string; placeholder?: string; help?: string }[];
+  setupNote?: string;
+}
+
+/**
+ * `reachable` is carried separately from the two lists because "you have no
+ * apps" and "I cannot see your apps" look identical otherwise — an empty
+ * panel — and only one of them is the user's problem to fix.
+ */
+export async function fetchConnections(): Promise<{
+  connections: Connection[];
+  catalog: CatalogEntry[];
+  reachable: boolean;
+}> {
+  try {
+    const r = await fetch(`${API_BASE}/api/connections`, { signal: AbortSignal.timeout(5000) });
+    if (!r.ok) return { connections: [], catalog: [], reachable: false };
+    return { ...(await r.json()), reachable: true };
+  } catch {
+    return { connections: [], catalog: [], reachable: false };
+  }
+}
+
+/** Shared shape: every mutation returns the updated card or an error to show. */
+type ConnResult = { ok: true; connection?: Connection } | { ok: false; error: string };
+
+async function connMutate(path: string, init?: RequestInit): Promise<ConnResult> {
+  try {
+    const r = await fetch(`${API_BASE}/api/connections${path}`, init);
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) return { ok: false, error: j.error ?? `Backend returned ${r.status}.` };
+    return { ok: true, connection: j.connection };
+  } catch (e) {
+    return { ok: false, error: `Cannot reach the backend. (${(e as Error).message})` };
+  }
+}
+
+export function connectFromCatalog(
+  catalogId: string,
+  body: { inputs?: Record<string, string>; secrets?: Record<string, string> }
+): Promise<ConnResult> {
+  return connMutate(`/catalog/${catalogId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+export function addCustomConnection(body: {
+  id: string; label: string; transport: 'stdio' | 'http';
+  command?: string; args?: string[]; url?: string;
+  authSecret?: string; secrets?: Record<string, string>; env?: Record<string, string>;
+}): Promise<ConnResult> {
+  return connMutate('', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+export const connectApp = (id: string) => connMutate(`/${id}/connect`, { method: 'POST' });
+export const disconnectApp = (id: string) => connMutate(`/${id}/disconnect`, { method: 'POST' });
+export const refreshApp = (id: string) => connMutate(`/${id}/refresh`, { method: 'POST' });
+export const removeApp = (id: string) => connMutate(`/${id}`, { method: 'DELETE' });
 
 /* ─── PROJECTS ────────────────────────────────────────────────────────
    A project is a workspace with its own memory. Chat happens inside one,

@@ -164,9 +164,6 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                   </div>
 
                   <div className="ms-tile-meta">
-                    {m.supportsVision && <span className="ms-capability-tag">Vision</span>}
-                    {m.supportsThinking && <span className="ms-capability-tag">Reasoning</span>}
-                    {m.supportsTools && <span className="ms-capability-tag">Tools</span>}
                     {isSelected && <Check size={16} className="ms-check-icon" />}
                   </div>
                 </div>

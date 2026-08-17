@@ -3,6 +3,7 @@ import { Plus, Mic, Send, Globe, X, Paperclip } from 'lucide-react';
 import { Attachment } from './hooks/useChat';
 import { VoiceState } from '../../events';
 import { QuickActionsMenu } from './QuickActionsMenu';
+import { LiveWaveform } from '../ui/LiveWaveform';
 
 interface ComposerProps {
   chatInput: string;
@@ -99,6 +100,13 @@ export const Composer: React.FC<ComposerProps> = ({
             >
               <Plus size={16} />
             </button>
+          </div>
+
+          <div className="composer-center-actions" style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+            <LiveWaveform 
+              active={voiceState === 'recording'} 
+              processing={voiceState === 'transcribing' || voiceState === 'thinking'} 
+            />
           </div>
 
           <div className="composer-right-actions">

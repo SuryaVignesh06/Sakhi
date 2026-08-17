@@ -1,17 +1,23 @@
 import React, { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle, AudioLines, Check, ChevronDown, ChevronRight, Clipboard, Code2, Copy, Eye, FolderOpen,
-  Globe, HardDrive, Loader2, Mic, Monitor, RotateCcw, Search, Send, Shield,
-  Sparkles, Square, TerminalSquare, ThumbsDown, ThumbsUp, Wrench, X, Zap,
+  Globe, HardDrive, Loader2, Mic, Monitor, RotateCcw, Search, Send, Share2, Shield,
+  Sparkles, Square, TerminalSquare, ThumbsDown, ThumbsUp, Volume2, VolumeX, Wrench, X, Zap,
 } from 'lucide-react';
-import { Message, MessageContent } from './components/ui/message';
+import { Message, MessageAvatar, MessageContent } from './components/ui/message';
 import { ProcessingStatus, TraceRecord } from './components/ProcessingStatus';
 import { useDictation } from './useDictation';
 import { useMicLevel } from './useMicLevel';
 import { Response } from './components/ui/response';
 import { TextAnimate } from './components/ui/text-animate';
-import type { PlannerStage, SessionState, ToolCall } from './events';
+import { Notice as NoticeType, ToolCall, SessionState, emptySession, reduce, CrawlState, PlannerStage } from './events';
+
+import { SearchTrace } from './components/search-trace/SearchTrace';
+import { SourceHistoryPanel } from './components/search-trace/SourceHistoryPanel';
+import { LocalMemoryIndicator } from './components/search-trace/LocalMemoryIndicator';
 import { Markdown, cleanChatText } from './AssistantStream';
+import { speak as speakNow, stopSpeaking } from './speech';
+import { ShimmeringText } from './components/ui/shimmering-text';
 import PlusMenu, { type Attachment } from './PlusMenu';
 import './ChatView.css';
 
@@ -181,6 +187,27 @@ export const PermissionCard = memo(function PermissionCard({
   );
 });
 
+/* ─── URL FAVICONS HELPER ─────────────────────────────────────────── */
+
+const renderWithFavicons = (text: string) => {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return text.split(urlRegex).map((part, i) => {
+    if (part.match(urlRegex)) {
+      try {
+        const url = new URL(part);
+        return (
+          <a key={i} href={part} target="_blank" rel="noreferrer" title={url.hostname} className="inline-flex items-center justify-center mx-1 p-1 rounded-md bg-[rgba(var(--ink),0.05)] hover:bg-[rgba(var(--ink),0.1)] transition-colors border border-[rgba(var(--ink),0.1)] align-middle" style={{ width: '22px', height: '22px' }}>
+            <img src={`https://www.google.com/s2/favicons?domain=${url.hostname}&sz=32`} alt={url.hostname} style={{ width: '14px', height: '14px', borderRadius: '2px' }} />
+          </a>
+        );
+      } catch {
+        return <span key={i}>{part}</span>;
+      }
+    }
+    return <span key={i}>{part}</span>;
+  });
+};
+
 /* ─── TOOL CARD ───────────────────────────────────────────────────── */
 
 const ToolRow = memo(function ToolRow({ t }: { t: ToolCall }) {
@@ -206,7 +233,7 @@ const ToolRow = memo(function ToolRow({ t }: { t: ToolCall }) {
       {t.status === 'running' && typeof t.progress === 'number' && (
         <div className="cv-tool-bar"><span style={{ width: `${Math.min(100, Math.max(0, t.progress))}%` }} /></div>
       )}
-      {open && detail && <pre className="cv-tool-log">{detail}</pre>}
+      {open && detail && <pre className="cv-tool-log whitespace-pre-wrap">{renderWithFavicons(detail)}</pre>}
     </div>
   );
 });
@@ -222,7 +249,7 @@ const ThinkingPanel = memo(function ThinkingPanel({ text }: { text: string }) {
         <ChevronRight size={14} className={`cv-chev ${open ? 'is-open' : ''} transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
         <span className="font-medium text-[var(--text-muted)]">Thought Process</span>
       </button>
-      {open && <div className="cv-think-body">{text}</div>}
+      {open && <div className="cv-think-body whitespace-pre-wrap">{renderWithFavicons(text)}</div>}
     </div>
   );
 });
@@ -230,26 +257,68 @@ const ThinkingPanel = memo(function ThinkingPanel({ text }: { text: string }) {
 /* ─── FINISHED MESSAGE ────────────────────────────────────────────── */
 
 const AssistantMessage = memo(function AssistantMessage({
-  m, logoSrc, onRegenerate,
+  m, logoSrc, promptText, onRegenerate,
 }: {
   m: ChatMessageItem;
   logoSrc: string;
+  promptText?: string;
   onRegenerate?: (text: string) => void;
 }) {
   const [copied, setCopied] = useState(false);
-  const [vote, setVote] = useState<'up' | 'down' | null>(null);
+  const [shared, setShared] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+  const [vote, setVote] = useState<'up' | 'down' | null>(() => {
+    try {
+      return (localStorage.getItem(`sakhi_fb_${m.id}`) as 'up' | 'down') || null;
+    } catch {
+      return null;
+    }
+  });
 
-  const copy = () => {
+  const handleCopy = () => {
     navigator.clipboard?.writeText(cleanChatText(m.text));
     setCopied(true);
     setTimeout(() => setCopied(false), 1600);
   };
 
+  const handleShare = () => {
+    const formatted = promptText
+      ? `User: ${promptText}\n\nSakhi: ${cleanChatText(m.text)}`
+      : cleanChatText(m.text);
+    navigator.clipboard?.writeText(formatted);
+    setShared(true);
+    setTimeout(() => setShared(false), 1800);
+  };
+
+  const handleSpeak = () => {
+    if (speaking) {
+      stopSpeaking();
+      setSpeaking(false);
+    } else {
+      setSpeaking(true);
+      speakNow(cleanChatText(m.text))
+        .catch(() => {})
+        .finally(() => setSpeaking(false));
+    }
+  };
+
+  const handleVote = (type: 'up' | 'down') => {
+    const next = vote === type ? null : type;
+    setVote(next);
+    try {
+      if (next) {
+        localStorage.setItem(`sakhi_fb_${m.id}`, next);
+      } else {
+        localStorage.removeItem(`sakhi_fb_${m.id}`);
+      }
+    } catch {}
+  };
+
   return (
     <div className={`message-demo-lists w-full flex-shrink-0 ${m.error ? 'is-error' : ''}`} key={m.id}>
       <Message from="assistant">
-        <img src={logoSrc} alt="" className="assistant-avatar-logo" />
-        <MessageContent>
+        <MessageAvatar src={logoSrc} fallback="SK" />
+        <MessageContent variant="flat" from="assistant">
           {m.steps && m.steps.length > 0 && (
             <TraceRecord steps={m.steps} />
           )}
@@ -261,14 +330,36 @@ const AssistantMessage = memo(function AssistantMessage({
           </Response>
 
           <div className="cv-msg-actions">
-            <button className={copied ? 'is-on' : ''} onClick={copy} title="Copy">
-              {copied ? <Check size={13} /> : <Copy size={13} />}
+            <button
+              className={speaking ? 'is-on' : ''}
+              onClick={handleSpeak}
+              title={speaking ? 'Stop speaking' : 'Read out loud'}
+            >
+              {speaking ? <VolumeX size={13} /> : <Volume2 size={13} />}
             </button>
-            <button className={vote === 'up' ? 'is-on' : ''} onClick={() => setVote(vote === 'up' ? null : 'up')} title="Good response">
+            <button
+              className={vote === 'up' ? 'is-on' : ''}
+              onClick={() => handleVote('up')}
+              title="Good response (Helpful)"
+            >
               <ThumbsUp size={13} />
             </button>
-            <button className={vote === 'down' ? 'is-on' : ''} onClick={() => setVote(vote === 'down' ? null : 'down')} title="Bad response">
+            <button
+              className={vote === 'down' ? 'is-on' : ''}
+              onClick={() => handleVote('down')}
+              title="Bad response (Needs improvement)"
+            >
               <ThumbsDown size={13} />
+            </button>
+            <button
+              className={shared ? 'is-on' : ''}
+              onClick={handleShare}
+              title={shared ? 'Copied Q&A to clipboard!' : 'Share conversation pair'}
+            >
+              {shared ? <Check size={13} /> : <Share2 size={13} />}
+            </button>
+            <button className={copied ? 'is-on' : ''} onClick={handleCopy} title="Copy response text">
+              {copied ? <Check size={13} /> : <Copy size={13} />}
             </button>
             {onRegenerate && (
               <button onClick={() => onRegenerate(m.text)} title="Regenerate">
@@ -375,7 +466,7 @@ function Composer({
           <textarea
             ref={ta}
             className="composer-input"
-            placeholder={busy ? 'Sakhi is working…' : 'Ask anything, or tell me to do something on your computer'}
+            placeholder="Ask Sakhi anything, or type a follow-up..."
             rows={1}
             value={value}
             onChange={(e) => onChange(e.target.value)}
@@ -469,18 +560,27 @@ function Composer({
           >
             <AudioLines size={18} strokeWidth={1.75} />
           </button>
-          {busy && onStop ? (
+          {ready ? (
+            <button
+              className="btn-send is-ready"
+              type="button"
+              onClick={onSend}
+              title="Send message"
+              aria-label="Send message"
+            >
+              <Send size={17} strokeWidth={1.9} />
+            </button>
+          ) : busy && onStop ? (
             <button className="btn-send is-ready cv-send-stop" type="button" onClick={onStop} title="Stop" aria-label="Stop">
               <Square size={14} fill="currentColor" />
             </button>
           ) : (
             <button
-              className={`btn-send ${ready ? 'is-ready' : 'is-hidden'}`}
+              className="btn-send is-hidden"
               type="button"
-              onClick={onSend}
-              disabled={!ready}
-              tabIndex={ready ? 0 : -1}
-              aria-hidden={!ready}
+              disabled
+              tabIndex={-1}
+              aria-hidden="true"
               title="Send"
               aria-label="Send message"
             >
@@ -501,6 +601,8 @@ const SUGGESTIONS = [
   { label: 'Save a note', prompt: 'Save a file called notes.md in my workspace with a short checklist for today.' },
   { label: 'Copy something for me', prompt: 'Copy the text "Sakhi is running" to my clipboard.' },
 ];
+
+import { LiquidGlassCard } from './components/ui/liquid-glass';
 
 export default function ChatView({
   messages, session, busy, startedAt, connected,
@@ -549,7 +651,12 @@ export default function ChatView({
   }, []);
 
   useEffect(() => {
-    if (pinned) bottomRef.current?.scrollIntoView({ block: 'end' });
+    if (!pinned || !scrollRef.current) return;
+    const el = scrollRef.current;
+    let rId = requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight;
+    });
+    return () => cancelAnimationFrame(rId);
   }, [messages.length, session.response, session.toolOrder.length, session.permissions.length, busy, pinned]);
 
   const liveTools = useMemo(
@@ -560,41 +667,56 @@ export default function ChatView({
   const empty = messages.length === 0;
 
   return (
-    <div className="nav-section-wrapper cv-root">
+    <div className="cv-root">
       <div className="cv-scroll" ref={scrollRef}>
         <div className="cv-thread">
+          {/* An empty thread was rendering literally nothing — a full frame of
+              blank page above the composer. `SUGGESTIONS` and the `.cv-empty`
+              styles were both already here and both unreferenced, so the
+              opening state existed in the codebase but never on screen. Each
+              chip sends a real prompt through the same path as typing it. */}
           {empty && !busy && (
             <div className="cv-empty">
-              <AgentMark src={logoSrc} active={false} size={44} />
-              <h2>What should I do for you?</h2>
-              <p>I can answer questions, or act on this computer — open apps, read and write files, use the clipboard, and check the system.</p>
+              <AgentMark src={logoSrc} active={false} size={40} />
+              <h2>What can I do for you?</h2>
+              <p>
+                Ask a question, or point me at something on this machine — I can browse,
+                run commands, read and write files, and remember what matters.
+              </p>
               <div className="cv-suggest">
-                {SUGGESTIONS.map((sg) => (
-                  <button key={sg.label} onClick={() => onSend(sg.prompt)}>{sg.label}</button>
+                {SUGGESTIONS.map((s) => (
+                  <button key={s.label} type="button" onClick={() => onSend(s.prompt)}>
+                    {s.label}
+                  </button>
                 ))}
               </div>
             </div>
           )}
 
-          {messages.map((m) =>
-            m.sender === 'user' ? (
-              <div className="w-full flex-shrink-0" key={m.id}>
-                <Message from="user">
-                  <MessageContent>
-                    <Response>{m.text}</Response>
-                  </MessageContent>
-                </Message>
-              </div>
+
+          {messages.map((m, i) => {
+            const prevUserMessage = i > 0 && messages[i - 1]?.sender === 'user' ? messages[i - 1].text : undefined;
+            return m.sender === 'user' ? (
+              <Message from="user" key={m.id}>
+                <MessageContent from="user" variant="contained">
+                  <Response variant="user">{m.text}</Response>
+                </MessageContent>
+              </Message>
             ) : (
-              <div className="w-full flex-shrink-0" key={m.id}>
-                <AssistantMessage m={m} logoSrc={logoSrc} onRegenerate={(t) => onSend(t)} />
-              </div>
-            )
-          )}
+              <AssistantMessage
+                key={m.id}
+                m={m}
+                logoSrc={logoSrc}
+                promptText={prevUserMessage}
+                onRegenerate={(t) => onSend(t)}
+              />
+            );
+          })}
 
           {/* ── the live turn ── */}
           {busy && (
             <div className="message-demo-lists w-full flex-shrink-0">
+              {session.crawl.mode && <SearchTrace crawl={session.crawl} />}
               {/* The indicator sits OUTSIDE the message card and flush with
                   the thread's left edge. Inside the card it was inset by the
                   avatar column, so it read as floating in the middle of the
@@ -611,24 +733,28 @@ export default function ChatView({
 
               {/* The card only appears once there is something to put in it —
                   no empty bubble sitting under the status line. */}
-              {(session.response || session.thinking || session.permissions.length > 0) && (
+              {(session.response || session.permissions.length > 0) && (
                 <Message from="assistant">
-                  <img
-                    src={logoSrc}
-                    alt=""
-                    className="assistant-avatar-logo assistant-avatar-logo--busy"
-                  />
-                  <MessageContent>
+                  <MessageAvatar src={logoSrc} fallback="SK" />
+                  <MessageContent variant="flat" from="assistant">
                     {session.permissions.map((p) => (
                       <PermissionCard key={p.id} ask={p} onAnswer={onPermission} />
                     ))}
 
-                    {session.response && (
-                      <Response>
-                        <Markdown text={session.response} />
-                        <span className="cv-caret" aria-hidden />
-                      </Response>
-                    )}
+                    {session.response ? (
+                      <>
+                        <Response>
+                          <Markdown text={session.response} />
+                          <span className="cv-caret" aria-hidden />
+                        </Response>
+                        {session.crawl.mode === 'online' && session.crawl.sources.length > 0 && (
+                          <SourceHistoryPanel sources={session.crawl.sources} />
+                        )}
+                        {session.crawl.mode === 'offline' && session.crawl.totalSources > 0 && (
+                          <LocalMemoryIndicator totalSources={session.crawl.totalSources} offlineSources={session.crawl.offlineSources} />
+                        )}
+                      </>
+                    ) : null}
                   </MessageContent>
                 </Message>
               )}

@@ -91,7 +91,7 @@ async function transcribeParakeet(pcm: Float32Array, signal?: AbortSignal): Prom
   }
 
   const form = new FormData();
-  form.append('file', new Blob([toWav(pcm)], { type: 'audio/wav' }), 'audio.wav');
+  form.append('file', new Blob([new Uint8Array(toWav(pcm))], { type: 'audio/wav' }), 'audio.wav');
   form.append('model', PARAKEET_MODEL);
   form.append('language', 'en');
 

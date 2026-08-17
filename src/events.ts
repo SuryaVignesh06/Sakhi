@@ -59,7 +59,18 @@ export type AppEvent =
    * dismissing one is a local act. It is an event rather than a setState so the
    * reducer stays the only writer of session state.
    */
-  | Envelope<'notice.dismissed', { id: string }>;
+  | Envelope<'notice.dismissed', { id: string }>
+  | Envelope<'mode_determined', { mode: 'online' | 'offline'; reason?: string }>
+  | Envelope<'discovery_start', { query: string }>
+  | Envelope<'discovery_complete', { query: string; candidate_count?: number }>
+  | Envelope<'frontier_select', { url: string; domain: string; reason: string; reasoning_provider: 'gemini' | 'openrouter'; source: 'candidate_pool' | 'discovered_link'; depth: number }>
+  | Envelope<'source_fetch_start', { id: string; url: string; domain: string; favicon_url: string }>
+  | Envelope<'source_fetch_complete', { id: string; url: string; domain: string; favicon_url: string; success: boolean }>
+  | Envelope<'embedding_start', { chunk_count?: number }>
+  | Envelope<'embedding_complete', { chunk_count?: number }>
+  | Envelope<'rag_indexed', { chunk_count?: number }>
+  | Envelope<'local_rag_retrieval', { chunk_count: number; sources: string[] }>
+  | Envelope<'search_trace_complete', { total_sources: number; total_hops: number }>;
 
 export type EventType = AppEvent['type'];
 
@@ -96,6 +107,23 @@ export interface Notice {
   message: string;
 }
 
+export interface FetchedSource {
+  id: string;
+  url: string;
+  domain: string;
+  favicon_url: string;
+  success?: boolean;
+}
+
+export interface CrawlState {
+  mode: 'online' | 'offline' | null;
+  phase: 'idle' | 'searching' | 'fetching' | 'complete';
+  query: string;
+  sources: FetchedSource[];
+  totalSources: number;
+  offlineSources: string[];
+}
+
 export interface PermissionAsk {
   id: string;
   permission: string;
@@ -122,6 +150,7 @@ export interface SessionState {
   taskOrder: string[];
   notices: Notice[];
   permissions: PermissionAsk[];
+  crawl: CrawlState;
 }
 
 export const emptySession = (): SessionState => ({
@@ -136,6 +165,7 @@ export const emptySession = (): SessionState => ({
   taskOrder: [],
   notices: [],
   permissions: [],
+  crawl: { mode: null, phase: 'idle', query: '', sources: [], totalSources: 0, offlineSources: [] },
 });
 
 /**
@@ -273,6 +303,48 @@ export function reduce(s: SessionState, e: AppEvent): SessionState {
     case 'memory.updated':
       return s; // no visual surface yet
 
+    case 'mode_determined':
+      return { ...s, crawl: { ...s.crawl, mode: e.payload.mode } };
+
+    case 'discovery_start':
+      return { ...s, crawl: { ...s.crawl, phase: 'searching', query: e.payload.query } };
+
+    case 'frontier_select':
+      if (e.payload.source === 'discovered_link') {
+        return { ...s, crawl: { ...s.crawl, phase: 'fetching' } };
+      }
+      return s;
+
+    case 'source_fetch_start':
+      return {
+        ...s,
+        crawl: {
+          ...s.crawl,
+          phase: 'fetching',
+          sources: [
+            ...s.crawl.sources,
+            { id: e.payload.id, url: e.payload.url, domain: e.payload.domain, favicon_url: e.payload.favicon_url }
+          ]
+        }
+      };
+
+    case 'source_fetch_complete':
+      return {
+        ...s,
+        crawl: {
+          ...s.crawl,
+          sources: s.crawl.sources.map((src) =>
+            src.id === e.payload.id ? { ...src, success: e.payload.success } : src
+          )
+        }
+      };
+
+    case 'local_rag_retrieval':
+      return { ...s, crawl: { ...s.crawl, phase: 'complete', offlineSources: e.payload.sources, totalSources: e.payload.chunk_count } };
+
+    case 'search_trace_complete':
+      return { ...s, crawl: { ...s.crawl, phase: 'complete', totalSources: e.payload.total_sources } };
+
     default:
       // Unknown type: ignore rather than throw, so a newer backend can add
       // events without breaking an older frontend.
@@ -315,7 +387,59 @@ export function connect({ wsUrl, sseUrl, onEvent, onState }: StreamOptions): () 
   let es: EventSource | null = null;
   let disposed = false;
 
+  let responseBuffer = '';
+  let thinkingBuffer = '';
+  let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
   const set = (s: ConnState) => !disposed && onState?.(s);
+
+  const flush = () => {
+    flushTimer = null;
+    if (disposed) return;
+    if (thinkingBuffer) {
+      const text = thinkingBuffer;
+      thinkingBuffer = '';
+      onEvent({
+        id: crypto.randomUUID(),
+        type: 'thinking.chunk',
+        timestamp: Date.now(),
+        payload: { text },
+      });
+    }
+    if (responseBuffer) {
+      const text = responseBuffer;
+      responseBuffer = '';
+      onEvent({
+        id: crypto.randomUUID(),
+        type: 'response.chunk',
+        timestamp: Date.now(),
+        payload: { text },
+      });
+    }
+  };
+
+  const scheduleFlush = () => {
+    if (!flushTimer) {
+      flushTimer = setTimeout(flush, 30);
+    }
+  };
+
+  const handleEvent = (e: AppEvent) => {
+    if (disposed) return;
+    if (e.type === 'response.chunk') {
+      responseBuffer += e.payload.text;
+      scheduleFlush();
+    } else if (e.type === 'thinking.chunk') {
+      thinkingBuffer += e.payload.text;
+      scheduleFlush();
+    } else {
+      if (responseBuffer || thinkingBuffer) {
+        if (flushTimer) clearTimeout(flushTimer);
+        flush();
+      }
+      onEvent(e);
+    }
+  };
 
   const openSse = () => {
     if (disposed || !sseUrl) return set('closed');
@@ -325,7 +449,7 @@ export function connect({ wsUrl, sseUrl, onEvent, onState }: StreamOptions): () 
       es.onopen = () => set('open');
       es.onmessage = (m) => {
         const e = parse(m.data);
-        if (e) onEvent(e);
+        if (e) handleEvent(e);
       };
       es.onerror = () => set('error');
     } catch {
@@ -340,13 +464,11 @@ export function connect({ wsUrl, sseUrl, onEvent, onState }: StreamOptions): () 
       ws.onopen = () => set('open');
       ws.onmessage = (m) => {
         const e = parse(typeof m.data === 'string' ? m.data : '');
-        if (e) onEvent(e);
+        if (e) handleEvent(e);
       };
       ws.onerror = () => { ws?.close(); };
       ws.onclose = () => {
         if (disposed) return;
-        // A closed socket is not an error state on its own — fall through to
-        // SSE, and only then report failure.
         ws = null;
         if (sseUrl) openSse();
         else set('closed');
@@ -360,6 +482,10 @@ export function connect({ wsUrl, sseUrl, onEvent, onState }: StreamOptions): () 
 
   return () => {
     disposed = true;
+    if (flushTimer) {
+      clearTimeout(flushTimer);
+      flushTimer = null;
+    }
     ws?.close();
     es?.close();
   };

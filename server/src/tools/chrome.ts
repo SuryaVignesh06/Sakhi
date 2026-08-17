@@ -1,9 +1,35 @@
-import { readFile, access } from 'node:fs/promises';
+import { readFile, access, writeFile, mkdir } from 'node:fs/promises';
 import { homedir, platform } from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 const IS_WIN = platform() === 'win32';
 const IS_MAC = platform() === 'darwin';
+
+/* Where the chosen default profile is remembered between runs. */
+const PREFS = path.join(process.cwd(), '.data', 'prefs.json');
+
+async function readPrefs(): Promise<Record<string, unknown>> {
+  try {
+    return JSON.parse(await readFile(PREFS, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+async function writePrefs(patch: Record<string, unknown>) {
+  const cur = await readPrefs();
+  await mkdir(path.dirname(PREFS), { recursive: true });
+  await writeFile(PREFS, JSON.stringify({ ...cur, ...patch }, null, 2), { mode: 0o600 });
+}
+
+export async function getDefaultProfile(): Promise<string | undefined> {
+  const v = (await readPrefs()).defaultChromeProfile;
+  return typeof v === 'string' && v ? v : undefined;
+}
+
+export async function setDefaultProfile(nameOrDir: string): Promise<void> {
+  await writePrefs({ defaultChromeProfile: nameOrDir });
+}
 
 /**
  * Chrome, launched into a real signed-in profile.
@@ -107,17 +133,17 @@ export async function openChrome(opts: { profile?: string; url?: string } = {}):
   if (!bin) return { ok: false, error: 'Google Chrome does not appear to be installed.' };
 
   const profiles = await listProfiles();
+  const match = (want: string) =>
+    profiles.find((p) => p.directory.toLowerCase() === want) ??
+    profiles.find((p) => p.name.toLowerCase() === want) ??
+    profiles.find((p) => p.email?.toLowerCase() === want) ??
+    // Partial match last, so "surya" finds "Surya Vignesh".
+    profiles.find((p) => p.name.toLowerCase().includes(want));
+
   let chosen: ChromeProfile | undefined;
 
   if (opts.profile) {
-    const want = opts.profile.trim().toLowerCase();
-    chosen =
-      profiles.find((p) => p.directory.toLowerCase() === want) ??
-      profiles.find((p) => p.name.toLowerCase() === want) ??
-      profiles.find((p) => p.email?.toLowerCase() === want) ??
-      // Partial match last, so "surya" finds "Surya Vignesh".
-      profiles.find((p) => p.name.toLowerCase().includes(want));
-
+    chosen = match(opts.profile.trim().toLowerCase());
     if (!chosen) {
       return {
         ok: false,
@@ -125,11 +151,21 @@ export async function openChrome(opts: { profile?: string; url?: string } = {}):
         choices: profiles,
       };
     }
+  } else {
+    /* No profile asked for — this is where windows were ending up in guest.
+       `--profile-directory` was simply omitted, and Chrome then decides for
+       itself, which on a multi-profile install means the picker or a guest
+       window. Fall back to the remembered default, then to the first
+       signed-in profile, then to "Default": the flag is always passed. */
+    const saved = await getDefaultProfile();
+    chosen =
+      (saved ? match(saved.toLowerCase()) : undefined) ??
+      profiles.find((p) => p.email) ??
+      profiles.find((p) => p.directory === 'Default') ??
+      profiles[0];
   }
 
   const args: string[] = [];
-  /* Without this Chrome may open a guest or profile-picker window instead of
-     the account the user asked for. */
   if (chosen) args.push(`--profile-directory=${chosen.directory}`);
   if (opts.url) args.push(opts.url);
 

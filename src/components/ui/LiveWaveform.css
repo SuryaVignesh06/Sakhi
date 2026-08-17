@@ -1,0 +1,19 @@
+.live-waveform-container {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 24px;
+  padding: 0 10px;
+}
+
+.waveform-bar {
+  width: 3px;
+  background-color: var(--accent);
+  border-radius: 2px;
+  transition: height 0.1s ease;
+}
+
+.waveform-bar.processing {
+  background-color: var(--text-muted);
+  opacity: 0.7;
+}

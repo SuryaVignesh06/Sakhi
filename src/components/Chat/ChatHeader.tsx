@@ -65,16 +65,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           </div>
         )}
 
-        {/* Settings Shortcut */}
-        {onOpenSettings && (
-          <button
-            className="chat-header-action-btn"
-            onClick={onOpenSettings}
-            title="Open Settings"
-          >
-            <Settings size={16} />
-          </button>
-        )}
+
       </div>
     </header>
   );

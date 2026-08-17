@@ -5,11 +5,11 @@ import {
   Search, Sparkles, Trash2, Wrench, X,
 } from 'lucide-react';
 import {
-  PROVIDERS, fetchBackendKeys, fetchModels, fmtContext, fmtPrice, fmtSize, getKeys, getSelected,
+  BACKEND_ID, PROVIDERS, fetchBackendKeys, fetchModels, fmtContext, fmtPrice, fmtSize, getKeys, getSelected,
   maskKey, setKey as saveKey, setSelected, testKey,
   type ModelInfo, type ProviderId,
 } from './modelStore';
-import { preloadModel } from './api';
+import { API_BASE, preloadModel } from './api';
 import './ModelSelector.css';
 
 type Filter = 'all' | 'free' | 'paid' | 'vision' | 'tools' | 'thinking' | 'long';
@@ -144,9 +144,18 @@ export default function ModelSelector({
     }
   };
 
-  const onRemoveKey = () => {
+  const onRemoveKey = async () => {
     saveKey(tab, '');
     setKeyMsg(null);
+    try {
+      await fetch(`${API_BASE}/api/providers/${BACKEND_ID[tab]}/key`, {
+        method: 'DELETE',
+      });
+      const newServerKeys = await fetchBackendKeys();
+      setServerKeys(newServerKeys);
+    } catch (e) {
+      console.error('Failed to remove key from backend:', e);
+    }
     setCache((c) => ({ ...c, [tab]: undefined }));
     load(tab, true);
   };
@@ -258,14 +267,16 @@ export default function ModelSelector({
               )}
               <div className="ms-keynote">
                 <AlertTriangle size={12} />
-                Stored obfuscated in this browser only — never uploaded. Browser storage
-                cannot truly encrypt; real key protection needs the Electron main process.
-                {provider.keyUrl && (
-                  <>
-                    {' '}
-                    <a href={provider.keyUrl} target="_blank" rel="noreferrer">Get a key</a>
-                  </>
-                )}
+                <span>
+                  Stored obfuscated in this browser only — never uploaded. Browser storage
+                  cannot truly encrypt; real key protection needs the Electron main process.
+                  {provider.keyUrl && (
+                    <>
+                      {' '}
+                      <a href={provider.keyUrl} target="_blank" rel="noreferrer" className="ms-keylink">Get a key</a>
+                    </>
+                  )}
+                </span>
               </div>
             </div>
           )}
@@ -327,9 +338,6 @@ export default function ModelSelector({
                   </span>
                 </div>
                 <span className="ms-caps">
-                  {m.supportsVision && <Eye size={12} aria-label="Vision" />}
-                  {m.supportsTools && <Wrench size={12} aria-label="Tools" />}
-                  {m.supportsThinking && <Sparkles size={12} aria-label="Thinking" />}
                   {current?.id === m.id && <Check size={14} className="ms-tick" />}
                 </span>
               </button>

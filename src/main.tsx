@@ -3,6 +3,10 @@ import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import DesktopWidget from './DesktopWidget';
 import './index.css';
+/* Last, deliberately. Vite emits CSS in import order, so this is the sheet
+   that wins ties — which is what lets it undo the older `!important` rules in
+   ChatView.css that pinned answer text to white and broke light mode. */
+import './markdown.css';
 
 /**
  * One bundle, two windows.

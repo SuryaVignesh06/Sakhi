@@ -1,0 +1,392 @@
+/* ═══ RESPONSE TYPOGRAPHY ════════════════════════════════════════════
+   The renderer in AssistantStream.tsx emits `.as-md` and its children on
+   every surface that shows an answer — the Home stream and the chat thread
+   both go through it. None of those classes had a single rule, and the
+   global reset at the top of index.css zeroes every margin and sets
+   `list-style: none` on ul/ol. So headings, paragraphs, bullets and numbers
+   all collapsed into one undifferentiated block of text.
+
+   This file is the one place that styles them. It is imported last in
+   main.tsx so it beats the older `.message-demo-lists … !important` rules
+   that pinned response text to white and broke light mode.
+
+   Everything below is written against the theme tokens: `--ink` is the
+   foreground channel (245,245,245 dark / 16,16,16 light), so a single rule
+   reads correctly in both themes instead of needing a light-mode twin. */
+
+.as-md {
+  width: 100%;
+  min-width: 0;
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  /* The renderer already produces block elements. Inherited `pre-wrap` from
+     a wrapper would re-introduce the source newlines on top of them and
+     double every gap. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+/* No leading gap above the first block or trailing gap under the last —
+   the container's own padding owns the outer spacing. */
+.as-md > *:first-child { margin-top: 0 !important; }
+.as-md > *:last-child { margin-bottom: 0 !important; }
+
+/* ─── HEADINGS ────────────────────────────────────────────────────── */
+
+.as-md .as-h {
+  font-family: 'Bebas Neue', sans-serif;
+  color: var(--text-primary);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  /* Generous above, tight below: a heading belongs to the text under it. */
+  margin: 26px 0 10px;
+  scroll-margin-top: 16px;
+}
+
+.as-md .as-h--1 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.as-md .as-h--2 { font-size: 18.5px; }
+.as-md .as-h--3 { font-size: 16.5px; }
+.as-md .as-h--4 {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 22px;
+}
+
+/* A rule under the top two levels gives long answers a visible spine. */
+.as-md .as-h--1,
+.as-md .as-h--2 {
+  padding-bottom: 7px;
+  border-bottom: 1px solid rgba(var(--ink), 0.10);
+}
+
+/* ─── PARAGRAPHS ──────────────────────────────────────────────────── */
+
+.as-md .as-p {
+  margin: 0 0 14px;
+  color: var(--text-primary);
+}
+
+.as-md .as-p:last-child { margin-bottom: 0; }
+
+.as-md strong,
+.as-md b {
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.as-md em,
+.as-md i { font-style: italic; }
+
+.as-md a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2.5px;
+  transition: opacity 140ms ease;
+}
+
+.as-md a:hover { opacity: 0.75; }
+
+/* ─── LISTS ───────────────────────────────────────────────────────── */
+/* The global reset kills markers on every ul/ol in the app, so they have to
+   be turned back on explicitly here rather than merely indented. */
+
+.as-md .as-ul {
+  margin: 0 0 14px;
+  padding-left: 1.5em;
+  display: flow-root;
+}
+
+.as-md ul.as-ul { list-style: disc outside; }
+.as-md ol.as-ul { list-style: decimal outside; }
+
+.as-md .as-ul li {
+  margin: 0 0 7px;
+  padding-left: 3px;
+  line-height: 1.65;
+  color: var(--text-primary);
+}
+
+.as-md .as-ul li:last-child { margin-bottom: 0; }
+
+/* The marker is structure, not content — it should read as quieter than the
+   text it introduces. */
+.as-md .as-ul li::marker {
+  color: rgba(var(--ink), 0.45);
+  font-weight: 500;
+}
+
+.as-md ol.as-ul li::marker {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ─── BLOCKQUOTE ──────────────────────────────────────────────────── */
+
+.as-md .as-quote {
+  margin: 0 0 16px;
+  padding: 10px 16px;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  color: var(--text-secondary);
+  font-size: 14.5px;
+  line-height: 1.65;
+}
+
+.as-md .as-quote strong { color: var(--text-primary); }
+
+/* ─── HORIZONTAL RULE ─────────────────────────────────────────────── */
+
+.as-md .as-hr {
+  height: 1px;
+  border: 0;
+  margin: 22px 0;
+  background: rgba(var(--ink), 0.12);
+}
+
+/* ─── INLINE CODE ─────────────────────────────────────────────────── */
+/* Was pinned to #2A2A2A with a white hairline — a dark chip floating in a
+   white page. Built from the ink channel it tints correctly either way. */
+
+.as-md .as-icode,
+.as-md code:not(pre code) {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.86em;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: rgba(var(--ink), 0.07);
+  border: 1px solid rgba(var(--ink), 0.10);
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* ─── CODE BLOCKS ─────────────────────────────────────────────────── */
+/* Full bleed inside the message column: code and tables are the two things
+   that actually benefit from the width, so they are not held to the prose
+   measure. */
+
+.as-md .as-code {
+  margin: 0 0 16px;
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--ink), 0.12);
+  background: var(--code-bg, #14141A);
+  overflow: hidden;
+}
+
+.as-md .as-code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 14px;
+  background: var(--code-head-bg, #1C1C24);
+  border-bottom: 1px solid rgba(var(--ink), 0.10);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--code-muted, #8E8E98);
+}
+
+.as-md .as-code-head button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--code-muted, #8E8E98);
+  cursor: pointer;
+  transition: color 140ms ease, background 140ms ease;
+}
+
+.as-md .as-code-head button:hover {
+  color: var(--code-fg, #F5F5F5);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.as-md .as-code pre {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  background: transparent;
+}
+
+.as-md .as-code code {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--code-fg, #F5F5F5);
+  background: none;
+  border: none;
+  padding: 0;
+  white-space: pre;
+}
+
+/* Code keeps a dark ground in light mode — that is the convention everywhere
+   syntax is shown — but the surround lightens so it reads as a deliberate
+   panel rather than a hole punched in the page. */
+:root[data-theme='light'] .as-md .as-code {
+  --code-bg: #1B1B22;
+  --code-head-bg: #24242D;
+  --code-fg: #ECECF1;
+  --code-muted: #9A9AA6;
+  border-color: rgba(16, 24, 40, 0.14);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 6px 18px rgba(16, 24, 40, 0.08);
+}
+
+/* ─── TABLES ──────────────────────────────────────────────────────── */
+
+.as-md .as-tablewrap {
+  margin: 0 0 16px;
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--ink), 0.12);
+}
+
+.as-md .as-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.as-md .as-table th,
+.as-md .as-table td {
+  padding: 9px 13px;
+  text-align: left;
+  border-bottom: 1px solid rgba(var(--ink), 0.09);
+  color: var(--text-primary);
+}
+
+.as-md .as-table th {
+  font-weight: 600;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  background: rgba(var(--ink), 0.05);
+  white-space: nowrap;
+}
+
+.as-md .as-table tbody tr:nth-child(even) td {
+  background: rgba(var(--ink), 0.025);
+}
+
+.as-md .as-table tr:last-child td { border-bottom: none; }
+
+/* ─── THE ANSWER FOOTER ───────────────────────────────────────────── */
+/* `.as-meta` had no rule of its own, so the Speak button, the token count
+   and the duration ran together as "Speak 640 tokens4s". */
+
+.as-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(var(--ink), 0.08);
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+/* A middot between the numeric readouts, but not before the button. */
+.as-meta > span + span::before {
+  content: '·';
+  margin-right: 12px;
+  color: rgba(var(--ink), 0.28);
+}
+
+.as-meta .as-speak { margin-right: 4px; }
+
+/* ─── THE STREAMING CARET ─────────────────────────────────────────── */
+/* Rides the last line of text rather than sitting on its own row. */
+
+.as-md + .cv-caret,
+.as-md + .as-caret { vertical-align: baseline; }
+
+/* ─── NEUTRALISING THE OLD HARD-CODED WHITES ──────────────────────── */
+/* ChatView.css pinned response text, bold text and links to #FFFFFF with
+   !important for the dark design. In light mode that is white on white.
+   These override it with the token that already knows about both themes. */
+
+.message-demo-lists .as-md,
+.message-demo-lists .as-md .as-p,
+.message-demo-lists .as-md li,
+.response-body-text,
+.response-text {
+  color: var(--text-primary) !important;
+}
+
+.message-demo-lists .as-md strong,
+.message-demo-lists .as-md b,
+.response-text strong,
+.response-text b {
+  color: var(--text-primary) !important;
+}
+
+.message-demo-lists .as-md a,
+.response-text a {
+  color: var(--accent) !important;
+}
+
+.message-demo-lists .as-md .as-code code,
+.message-demo-lists .as-md .as-code pre {
+  color: var(--code-fg, #F5F5F5) !important;
+}
+
+/* The list rules in ChatView.css apply to every ul/ol under a message and
+   fight the ones above. Re-state the winning values at equal weight. */
+.message-demo-lists .as-md ul.as-ul {
+  list-style: disc outside !important;
+  padding-left: 1.5em !important;
+  margin: 0 0 14px !important;
+}
+
+.message-demo-lists .as-md ol.as-ul {
+  list-style: decimal outside !important;
+  padding-left: 1.5em !important;
+  margin: 0 0 14px !important;
+}
+
+.message-demo-lists .as-md li {
+  margin: 0 0 7px !important;
+  line-height: 1.65 !important;
+}
+
+/* ─── THE RESPONSE SHELL ──────────────────────────────────────────── */
+/* `Response` used to carry Tailwind class names — and Tailwind is not
+   installed in this project, so every one of them was inert. It is a real
+   class now, with the padding and measure the utilities were promising. */
+
+.md-response {
+  width: 100%;
+  min-width: 0;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+
+/* A user's own message is short and quoted verbatim, so it keeps the
+   newlines it was typed with. */
+.md-response--user { white-space: pre-wrap; }
+
+@media (max-width: 780px) {
+  .as-md { font-size: 14.5px; }
+  .as-md .as-h--1 { font-size: 20px; }
+  .as-md .as-h--2 { font-size: 17px; }
+  .as-md .as-h--3 { font-size: 15.5px; }
+}

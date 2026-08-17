@@ -8,7 +8,7 @@
     "dev": "vite",
     "dev:server": "npm --prefix server run dev",
     "dev:all": "concurrently -n web,api -c cyan,magenta \"npm run dev\" \"npm run dev:server\"",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && npm --prefix server run build",
     "preview": "vite preview",
     "setup": "npm install && npm --prefix server install && npm --prefix server run db:generate && npm --prefix server run db:push",
     "start": "electron . --dev",

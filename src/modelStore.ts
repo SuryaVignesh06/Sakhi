@@ -289,7 +289,7 @@ function blockedProvider(name: string): FetchResult {
 /* The backend proxy. It holds the keys in an encrypted vault and has no CORS
    restrictions, so it is the only way OpenAI and Anthropic can be listed at
    all — the browser cannot reach their /models endpoints. */
-const BACKEND_ID: Record<ProviderId, string> = {
+export const BACKEND_ID: Record<ProviderId, string> = {
   gemini: 'gemini',
   claude: 'anthropic',
   openai: 'openai',

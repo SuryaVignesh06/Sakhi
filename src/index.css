@@ -1,5 +1,5 @@
 /* ─── GOOGLE FONTS ─────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Bebas+Neue&family=Poppins:wght@300;400;500;600&display=swap');
 
 /* ─── DESIGN TOKENS (CHATGPT-STYLE DARK VOICE AI INTERFACE) ────────── */
 :root,
@@ -63,7 +63,7 @@
   --status-online: #10A37F;
 
   /* Focus Ring */
-  --focus-ring: 0 0 0 2px rgba(16, 163, 127, 0.35);
+  --focus-ring: 0 0 0 2px rgba(255, 255, 255, 0.35);
 
   /* Subtle Glass & Shadows */
   --glass-bg: rgba(30, 30, 30, 0.85);
@@ -97,7 +97,7 @@
 
   --bg-base: #FFFFFF;
   --bg-sidebar: #FFFFFF;
-  --bg-page: #F7F7F8;
+  --bg-page: #FFFFFF;
   --bg-secondary: #F0F0F2;
   --surface-1: rgba(0, 0, 0, 0.04);
   --surface-1-hover: rgba(0, 0, 0, 0.07);
@@ -109,10 +109,16 @@
   --bg-hover: rgba(0, 0, 0, 0.055);
   --bg-active: rgba(0, 0, 0, 0.09);
 
+  /* NOTE: a second `:root[data-theme='light']` block near the end of this file
+     redefines these, and being later it is the one that actually paints. Both
+     are kept in step so editing either produces the result it looks like it
+     should — a mismatch here reads as "my change did nothing". */
   --text-primary: #101010;
   --text-secondary: #3F3F46;
-  --text-muted: #62626B;
-  --text-faint: #8A8A93;
+  --text-muted: #5E5E64;  /* 6.0:1 on the light page */
+  --text-faint: #707077;  /* 4.6:1 — was #8A8A93 at 3.4:1, under WCAG AA */
+  /* Disabled text is exempt from the contrast minimum by design: it has to
+     read as unavailable, and 4.5:1 makes it look active. */
   --text-disabled: #A8A8B0;
   --text-on-accent: #FFFFFF;
 
@@ -145,7 +151,7 @@
   --color-success: #22C55E;
   --status-online: #10A37F;
 
-  --focus-ring: 0 0 0 2px rgba(16, 163, 127, 0.35);
+  --focus-ring: 0 0 0 2px rgba(0, 0, 0, 0.35);
 
   --glass-bg: #FFFFFF;
   --glass-bg-hover: #F4F4F4;
@@ -269,15 +275,32 @@ textarea {
 }
 
 /* ─── LEFT SIDEBAR (ROUNDED FLOATING LIQUID GLASS) ──────────────── */
+/* Nav Text Smooth Fade */
+.nav-text {
+  white-space: nowrap;
+  opacity: 0;
+  max-width: 0px;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity 140ms ease, max-width 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sidebar:hover .nav-text {
+  opacity: 1;
+  max-width: 150px;
+  pointer-events: auto;
+  transition: opacity 220ms ease 80ms, max-width 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .sidebar {
-  width: 240px;
+  width: 76px;
+  padding: 14px 0 14px 14px;
   flex-shrink: 0;
   background: transparent !important;
   border: none !important;
   border-radius: 0;
   display: flex;
   flex-direction: column;
-  padding: 14px 0 14px 14px;
   height: 100vh;
   position: relative;
   max-height: none;
@@ -289,6 +312,24 @@ textarea {
     padding 340ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.sidebar:hover {
+  width: 240px;
+}
+
+.sidebar-brand-name {
+  display: none;
+}
+.sidebar:hover .sidebar-brand-name {
+  display: block;
+}
+
+.account-info, .account-chevron {
+  display: none;
+}
+.sidebar:hover .account-info, .sidebar:hover .account-chevron {
+  display: block;
+}
+
 .sidebar-liquid-inner {
   height: 100%;
   width: 100%;
@@ -296,20 +337,11 @@ textarea {
   flex-direction: column;
   padding: 16px 12px;
   border-radius: 24px !important;
-  background: var(--bg-sidebar) !important;
+  background: rgba(16, 16, 16, 0.5) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border: 1px solid var(--border-subtle) !important;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45) !important;
-}
-
-/* Nav Text Smooth Fade */
-.nav-text {
-  white-space: nowrap;
-  opacity: 1;
-  max-width: 150px;
-  overflow: hidden;
-  transition: opacity 220ms ease 80ms, max-width 320ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .sidebar--closed .nav-text {
@@ -425,18 +457,23 @@ textarea {
    defocuses as the view changes rather than snapping. */
 /* Chat pushes the backdrop right out of focus — the thread is the subject
    and a legible animated gradient behind it competes for attention. */
+/* Blurred, not deleted. A 0.62 scrim on top of blur(120px) and brightness
+   0.72 stacked up to an effectively opaque black sheet — the animation was
+   still running, and nothing of it survived to the screen. The blur is what
+   pushes the backdrop out of focus; the scrim only needs to take the contrast
+   down enough for the thread to sit in front of it. */
 .app-shell--chat-active .app-global-blur-overlay {
-  background: rgba(8, 8, 12, 0.62);
-  backdrop-filter: blur(120px) saturate(130%) brightness(0.72);
-  -webkit-backdrop-filter: blur(120px) saturate(130%) brightness(0.72);
+  background: rgba(8, 8, 12, 0.28);
+  backdrop-filter: blur(64px) saturate(125%) brightness(0.9);
+  -webkit-backdrop-filter: blur(64px) saturate(125%) brightness(0.9);
 }
 
 /* Light mode veils with white and lifts rather than darkens — the same
    "push the gradient back" effect, in the other direction. */
 :root[data-theme='light'] .app-shell--chat-active .app-global-blur-overlay {
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(120px) saturate(120%) brightness(1.1);
-  -webkit-backdrop-filter: blur(120px) saturate(120%) brightness(1.1);
+  background: rgba(255, 255, 255, 0.40);
+  backdrop-filter: blur(64px) saturate(120%) brightness(1.06);
+  -webkit-backdrop-filter: blur(64px) saturate(120%) brightness(1.06);
 }
 
 /* A dark scrim over a light gradient is what turns pale pink into grey, so
@@ -470,6 +507,16 @@ textarea {
   z-index: 5;
 }
 
+/* The scrollbar belongs to the window, not to the column of text.
+
+   This used to be `max-width: 900px; margin: 0 auto`, which made the SCROLL
+   CONTAINER 900px wide — so its scrollbar was drawn down the middle of the
+   screen beside the text. Keeping the container full-width and centring the
+   content with padding instead puts the bar back at the edge where the eye
+   expects it, with the reading column unchanged.
+
+   `max()` rather than plain arithmetic so the padding cannot go negative on a
+   window narrower than the column. */
 .chat-conversation-box {
   flex: 1;
   min-height: 0;
@@ -477,11 +524,9 @@ textarea {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 24px 20px;
+  padding: 24px max(20px, calc((100% - 900px) / 2));
   gap: 22px;
   width: 100%;
-  max-width: 900px;
-  margin: 0 auto;
 }
 
 .chat-bubble-row {
@@ -523,6 +568,52 @@ textarea {
   background: transparent;
   border: none;
   box-shadow: none;
+}
+
+.sidebar .sidebar-header {
+  justify-content: center;
+  border-bottom-color: transparent;
+  margin-bottom: 12px;
+  padding-bottom: 0;
+}
+
+.sidebar:hover .sidebar-header {
+  justify-content: flex-start;
+  padding-left: 8px;
+}
+
+.sidebar .nav-item {
+  padding: 0;
+  justify-content: center;
+  width: 42px;
+}
+
+.sidebar:hover .nav-item {
+  width: 100%;
+  justify-content: flex-start;
+  padding: 0 13px;
+}
+
+.sidebar .account-card {
+  padding: 10px 4px;
+  justify-content: center;
+  border-color: transparent;
+  background: transparent;
+}
+
+.sidebar:hover .account-card {
+  justify-content: flex-start;
+  padding: 10px;
+}
+
+/* When the sidebar collapses the account-wrap shrinks to ~72px.
+   The profile menu is positioned absolute inside it, so it also
+   shrinks. Give it a fixed width and shift it to stay usable. */
+.sidebar .profile-menu {
+  min-width: 220px;
+  left: 0;
+  right: auto;
+  width: 220px;
 }
 
 .chat-ai-author {
@@ -1434,7 +1525,11 @@ textarea {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  max-width: 760px;
+  /* 760px left roughly 340px of empty page on either side of a 1600px
+     window. 940px is still a comfortable measure for 15px prose (~100
+     characters) while giving code blocks and tables — the two things that
+     actually want the room — somewhere to go. */
+  max-width: 940px;
   width: 100%;
   margin: 0 auto;
   padding: 0 24px 32px 24px;
@@ -1543,6 +1638,45 @@ textarea {
   margin-bottom: 2px;
 }
 
+/* ── Keeping the hero readable over the shader ─────────────────────────
+   ColorBends throws a bright band across the page and, where it crosses the
+   greeting, contrast against #F5F5F5 drops far enough to matter.
+
+   This was a radial scrim. It measured well and looked wrong: on a real
+   screen it read as a black card sitting behind the text, which is a worse
+   problem than the one it solved. Any panel large enough to cover a 46px
+   headline is large enough to be seen as a panel.
+
+   A text shadow instead. It hugs the glyphs, so there is no rectangle to
+   notice, and it only darkens the few pixels immediately around each letter —
+   exactly where the separation is needed. */
+.content-hero {
+  position: relative;
+}
+
+/* The ShaderGradient palette puts a bright orange directly behind the
+   headline, where the raw background-to-text contrast measures 2.68:1. The
+   backdrop is specified and not up for changing, so the separation has to
+   come from the glyphs: a tight dark halo plus a wider soft one, which reads
+   as depth rather than as a box behind the text. */
+:root[data-theme='dark'] .greeting-line-1,
+:root[data-theme='dark'] .greeting-line-2,
+:root:not([data-theme='light']) .greeting-line-1,
+:root:not([data-theme='light']) .greeting-line-2 {
+  text-shadow:
+    0 1px 1px rgba(4, 4, 8, 0.92),
+    0 2px 6px rgba(4, 4, 8, 0.85),
+    0 4px 18px rgba(4, 4, 8, 0.72),
+    0 0 44px rgba(4, 4, 8, 0.55);
+}
+
+:root[data-theme='light'] .greeting-line-1,
+:root[data-theme='light'] .greeting-line-2 {
+  text-shadow:
+    0 1px 2px rgba(255, 255, 255, 0.75),
+    0 2px 16px rgba(255, 255, 255, 0.6);
+}
+
 .greeting-line-2 {
   font-size: 50px;
   line-height: 58px;
@@ -1579,11 +1713,11 @@ textarea {
   flex: 1;
   height: 112px;
   border-radius: var(--r-xl);
-  background: radial-gradient(130% 120% at 50% 0%, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.02) 70%, rgba(16, 16, 22, 0.45) 100%) !important;
-  backdrop-filter: blur(28px) saturate(200%) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(200%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.14) !important;
-  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.32), 0 0 28px rgba(59, 130, 246, 0.08), 0 0 45px rgba(236, 72, 153, 0.06), inset 0 1.5px 0 rgba(255, 255, 255, 0.35) !important;
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.18);
   padding: 16px 18px;
   position: relative;
   overflow: hidden;
@@ -1613,10 +1747,10 @@ textarea {
 }
 
 .action-card:hover {
-  background: radial-gradient(130% 120% at 50% 0%, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.04) 70%, rgba(22, 22, 30, 0.55) 100%) !important;
-  border-color: rgba(255, 255, 255, 0.28) !important;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.24);
   transform: translateY(-2px);
-  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.4), 0 0 36px rgba(59, 130, 246, 0.16), 0 0 54px rgba(236, 72, 153, 0.12), inset 0 1.5px 0 rgba(255, 255, 255, 0.45) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .action-card:hover::before {
@@ -1628,9 +1762,7 @@ textarea {
 .action-card:focus,
 .action-card:focus-visible {
   outline: none;
-  box-shadow: none !important;
   transform: none;
-  background: rgba(var(--ink), 0.05);
 }
 
 .action-card:hover .card-arrow {
@@ -1648,28 +1780,18 @@ textarea {
   font-weight: 600;
   color: var(--text-primary);
   background: rgba(var(--ink), 0.12);
-  border: 1px solid rgba(var(--ink), 0.25);
+  border: 1px solid rgba(var(--ink), 0.20);
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
   margin-bottom: 12px;
 }
 
-.chip-mint {
-  background: rgba(var(--ink), 0.14);
-  border-color: rgba(var(--ink), 0.3);
-  color: var(--text-primary);
-}
-
-.chip-peach {
-  background: rgba(var(--ink), 0.14);
-  border-color: rgba(var(--ink), 0.3);
-  color: var(--text-primary);
-}
-
+.chip-mint,
+.chip-peach,
 .chip-lime {
-  background: rgba(var(--ink), 0.14);
-  border-color: rgba(var(--ink), 0.3);
+  background: rgba(var(--ink), 0.12);
+  border-color: rgba(var(--ink), 0.20);
   color: var(--text-primary);
 }
 
@@ -1677,7 +1799,7 @@ textarea {
   font-size: 14px;
   line-height: 20px;
   font-weight: 400;
-  color: rgba(var(--ink), 0.7);
+  color: rgba(var(--ink), 0.75);
   max-width: 180px;
 }
 
@@ -1685,14 +1807,58 @@ textarea {
   position: absolute;
   right: 16px;
   bottom: 20px;
-  color: rgba(var(--ink), 0.5);
+  color: rgba(var(--ink), 0.55);
   transition: transform 160ms ease-out, color 160ms ease-out;
+}
+
+/* Light mode cards - clean floating liquid glass with crisp specular edge, no dark top line */
+:root[data-theme='light'] .action-card {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(28px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.95) !important;
+  box-shadow:
+    0 10px 30px rgba(100, 100, 150, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+}
+
+:root[data-theme='light'] .action-card::before {
+  background: radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.8) 0%, transparent 60%);
+}
+
+:root[data-theme='light'] .action-card:hover {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(255, 255, 255, 1) !important;
+  box-shadow:
+    0 14px 40px rgba(100, 100, 150, 0.12),
+    0 4px 12px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+  transform: translateY(-2px);
+}
+
+:root[data-theme='light'] .card-chip {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  color: var(--text-primary) !important;
+}
+
+:root[data-theme='light'] .card-body {
+  color: var(--text-secondary) !important;
+}
+
+:root[data-theme='light'] .card-arrow {
+  color: var(--text-muted) !important;
 }
 
 /* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ COMPOSER Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .composer {
-  width: 756px;
-  max-width: 100%;
+  /* Follows the column instead of being pinned to a number that no longer
+     matches it — a fixed 756px inside a 940px column left the bar visibly
+     narrower than the answer above it. */
+  width: 100%;
+  max-width: 756px;
+  margin: 0 auto;
   min-height: 98px;
   height: auto;
   border-radius: var(--r-2xl);
@@ -1700,7 +1866,7 @@ textarea {
   backdrop-filter: var(--glass-blur) !important;
   -webkit-backdrop-filter: var(--glass-blur) !important;
   border: 1px solid var(--border-subtle) !important;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45) !important;
+  box-shadow: none !important;
   padding: 14px 18px;
   display: flex;
   flex-direction: column;
@@ -1711,7 +1877,7 @@ textarea {
 .composer--focused {
   border-color: var(--border-strong) !important;
   background: var(--glass-bg-hover) !important;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06), 0 20px 56px rgba(0, 0, 0, 0.55) !important;
+  box-shadow: 0 0 0 2px rgba(var(--ink), 0.04) !important;
 }
 
 .composer-input {
@@ -1727,8 +1893,11 @@ textarea {
   width: 100%;
 }
 
+/* --text-faint is the dimmest step in the ramp and the composer sits over a
+   photograph, so it was the first thing to disappear. Muted is one step up
+   and still reads as placeholder rather than as entered text. */
 .composer-input::placeholder {
-  color: var(--text-faint);
+  color: var(--text-muted);
 }
 
 .composer-footer {
@@ -1771,14 +1940,17 @@ textarea {
   justify-content: center;
   color: var(--text-primary) !important;
   cursor: pointer;
-  border: 1.5px solid #FFFFFF !important;
+  /* Themed: a hard white border vanished against the light composer. */
+  border: 1.5px solid var(--border-strong) !important;
   transition: background 160ms ease, transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
   box-shadow: 0 2px 8px rgba(var(--shadow), 0.2);
 }
 
 .btn-mic svg {
   color: var(--text-primary) !important;
-  stroke: #FFFFFF !important;
+  /* Follows the themed `color` above. Was a hard white, which made these
+     icons invisible on the light composer. */
+  stroke: currentColor !important;
 }
 
 .btn-mic:hover {
@@ -2557,7 +2729,8 @@ textarea {
   padding: 0;
   border-radius: var(--r-lg);
   background: transparent !important;
-  border: 1.5px solid #FFFFFF !important;
+  /* Themed: a hard white border vanished against the light composer. */
+  border: 1.5px solid var(--border-strong) !important;
   color: var(--text-primary) !important;
   display: flex;
   align-items: center;
@@ -2569,7 +2742,9 @@ textarea {
 
 .btn-send svg {
   color: var(--text-primary) !important;
-  stroke: #FFFFFF !important;
+  /* Follows the themed `color` above. Was a hard white, which made these
+     icons invisible on the light composer. */
+  stroke: currentColor !important;
 }
 
 .btn-send:hover {
@@ -6872,14 +7047,18 @@ textarea {
   opacity: 0;
   transform: rotate(-90deg) scale(0.4);
   color: var(--text-primary) !important;
-  stroke: #FFFFFF !important;
+  /* Follows the themed `color` above. Was a hard white, which made these
+     icons invisible on the light composer. */
+  stroke: currentColor !important;
 }
 
 .is-dark .icon-moon {
   opacity: 1;
   transform: rotate(0deg) scale(1);
   color: var(--text-primary) !important;
-  stroke: #FFFFFF !important;
+  /* Follows the themed `color` above. Was a hard white, which made these
+     icons invisible on the light composer. */
+  stroke: currentColor !important;
   filter: drop-shadow(0 0 8px rgba(var(--ink), 0.8));
 }
 
@@ -6887,7 +7066,9 @@ textarea {
   opacity: 1;
   transform: rotate(0deg) scale(1);
   color: var(--text-primary) !important;
-  stroke: #FFFFFF !important;
+  /* Follows the themed `color` above. Was a hard white, which made these
+     icons invisible on the light composer. */
+  stroke: currentColor !important;
   filter: drop-shadow(0 0 8px rgba(var(--ink), 0.8));
 }
 
@@ -6895,7 +7076,9 @@ textarea {
   opacity: 0;
   transform: rotate(90deg) scale(0.4);
   color: var(--text-primary) !important;
-  stroke: #FFFFFF !important;
+  /* Follows the themed `color` above. Was a hard white, which made these
+     icons invisible on the light composer. */
+  stroke: currentColor !important;
 }
 
 /* Single Online/Offline Mode Toggle Button */
@@ -6980,7 +7163,8 @@ textarea {
   border-radius: var(--r-md);
   background: rgba(var(--ink), 0.05);
   backdrop-filter: blur(12px);
-  border: 1.5px solid #FFFFFF !important;
+  /* Themed: a hard white border vanished against the light composer. */
+  border: 1.5px solid var(--border-strong) !important;
   padding: 0 14px;
   font-size: 13px;
   font-weight: 600;
@@ -6992,7 +7176,9 @@ textarea {
 
 .btn-plus-model svg {
   color: var(--text-primary) !important;
-  stroke: #FFFFFF !important;
+  /* Follows the themed `color` above. Was a hard white, which made these
+     icons invisible on the light composer. */
+  stroke: currentColor !important;
 }
 
 .btn-plus-model:hover {
@@ -7427,11 +7613,40 @@ button:active,
   color: var(--text-primary);
 }
 
-/* Menus and popovers that assumed a dark ground. */
+/* ── Controls that are laid out but wired to nothing ───────────────────
+   Dimmed and made genuinely inert rather than merely labelled: a toggle that
+   still slides teaches the user they configured something. Colours come from
+   tokens so this reads correctly in both themes. */
+.settings-notwired-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 4px 0 14px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--color-warning) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 28%, transparent);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.settings-notwired-note svg { flex-shrink: 0; margin-top: 1px; color: var(--color-warning); }
+
+.settings-notwired {
+  opacity: 0.5;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Menus and popovers that assumed a dark ground.
+   The settings rule named `.settings-modal`, which no element has ever
+   carried — the card is `.settings-modal-card`. So the whole panel kept its
+   dark ground in light mode while the text switched to near-black, leaving
+   every label at about 1:1 against its own background. */
 :root[data-theme='light'] .ms-pop,
 :root[data-theme='light'] .plus-menu,
 :root[data-theme='light'] .profile-menu,
-:root[data-theme='light'] .settings-modal {
+:root[data-theme='light'] .settings-modal-card {
   background: var(--bg-base);
   color: var(--text-primary);
   border-color: var(--border-subtle);
@@ -7486,6 +7701,23 @@ button:active,
 .gcal-more-chip,
 .gcal-sub { color: var(--text-muted); }
 
+/* ═══ STATIC PHOTO BACKGROUND ══════════════════════════════════════════
+   The background photo, sized to cover the entire viewport. */
+.bg-photo {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  background-size: cover;
+  background-position: center;
+  pointer-events: none;
+}
+
+.bg-photo--light {
+  filter: saturate(0.8) brightness(1.2);
+}
+
 /* ═══ MESH GRADIENT BACKGROUND ═══════════════════════════════════════
    Replaces the WebGL shader. The base colour is set inline per theme; the
    blobs carry the four accent hues and drift over it. */
@@ -7500,6 +7732,12 @@ button:active,
   overflow: hidden;
 }
 .bg-grainient canvas { display: block; width: 100%; height: 100%; }
+
+/* Fade the whole layer toward the white page rather than dimming the shader's
+   own colours — see components/BackgroundShader.tsx for why dimming turned
+   the bands grey. 0.34 solved the muddiness by making the animation almost
+   invisible, which is not the same as solving it. */
+.bg-grainient--light { opacity: 0.62; }
 
 .bg-mesh {
   position: fixed;
@@ -7602,7 +7840,7 @@ button:active,
 
 :root[data-theme='light'] {
   /* A hair off pure white, so white cards have something to sit on. */
-  --bg-page: #F6F7FB;
+  --bg-page: #FFFFFF;
   --bg-base: #FFFFFF;
   --bg-secondary: #F2F4F8;
   --bg-card: #FFFFFF;
@@ -7612,11 +7850,17 @@ button:active,
   --surface-1: rgba(16, 24, 40, 0.035);
   --surface-1-hover: rgba(16, 24, 40, 0.06);
 
-  /* Cool-grey ink reads calmer than pure black on white. */
-  --text-primary: #14161C;
-  --text-secondary: #444B5A;
-  --text-muted: #6B7280;
-  --text-faint: #9AA1AE;
+  /* Cool-grey ink reads calmer than pure black on white.
+     The ramp is set by contrast, not by eye. On the dark background a faint
+     grey still separates cleanly, but the same grey on #F6F7FB was measured
+     at 2.6:1 — under the 4.5:1 WCAG AA floor, and visibly so: the Planner's
+     day headers, empty states and captions were all but unreadable in light
+     mode. Each step below clears 4.5:1 against the page while staying far
+     enough apart to keep the hierarchy legible. */
+  --text-primary: #14161C;   /* 16.9:1 on page */
+  --text-secondary: #444B5A; /*  8.2:1 */
+  --text-muted: #5A5E68;     /*  6.1:1 */
+  --text-faint: #6C727C;     /*  4.5:1 — the floor, not a suggestion */
 
   --border-subtle: rgba(16, 24, 40, 0.085);
   --border-strong: rgba(16, 24, 40, 0.15);
@@ -7632,7 +7876,7 @@ button:active,
 :root[data-theme='light'] .sidebar-liquid-inner,
 :root[data-theme='light'] .composer,
 :root[data-theme='light'] .assistant-message-card,
-:root[data-theme='light'] .settings-modal {
+:root[data-theme='light'] .settings-modal-card {
   box-shadow:
     0 1px 2px rgba(16, 24, 40, 0.05),
     0 8px 24px rgba(16, 24, 40, 0.07);
@@ -7660,9 +7904,13 @@ button:active,
 :root[data-theme='light'] .pl-complete,
 :root[data-theme='light'] .pl-mcard,
 :root[data-theme='light'] .pv-form input,
+/* The input is part of the bar, not a field sitting inside it. Filling it
+   with --bg-secondary drew a grey rectangle across the composer — a box
+   within a box, and the thing that made the bar look unfinished in light
+   mode. The glass surface behind it is the background. */
 :root[data-theme='light'] .composer-input {
-  background: var(--bg-secondary);
-  border-color: var(--border-subtle);
+  background: transparent;
+  border-color: transparent;
 }
 
 :root[data-theme='light'] .pl-scale { background: var(--bg-secondary); }
@@ -7704,3 +7952,675 @@ button:active,
 :root[data-theme='light'] ::-webkit-scrollbar-thumb:hover {
   background: rgba(16, 24, 40, 0.26);
 }
+
+/* ── Composer: dictation waveform ──────────────────────────────────────
+   Sits in the footer row while dictating and disappears the moment the
+   microphone closes, so the bar is not permanently taller for a control that
+   is usually idle. */
+.composer-wave {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  color: var(--accent);
+  padding-left: 4px;
+}
+
+.live-waveform {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+}
+
+.composer-wave-hint {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* The mic reads as armed while it is capturing. */
+.btn-mic.is-recording {
+  color: var(--accent) !important;
+  border-color: var(--accent) !important;
+  background: color-mix(in srgb, var(--accent) 12%, transparent) !important;
+}
+.btn-mic.is-recording svg { stroke: currentColor !important; }
+
+/* ── Composer shape ────────────────────────────────────────────────────
+   Shorter and rounder — the bar was 98px tall for a single line of text,
+   which read as a panel rather than an input. */
+.composer {
+  min-height: 62px !important;
+  border-radius: 26px !important;
+  padding: 10px 14px !important;
+}
+.composer-input { padding: 4px 6px !important; }
+
+/* ── Time-of-day photo backdrop ────────────────────────────────────────
+   Fixed and inert, same as the shader it replaces. `pointer-events: none`
+   matters: the layer covers the whole viewport and must never intercept a
+   click meant for the UI on top of it. */
+.bg-photo {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  /* Crossfade when the period rolls over rather than snapping. */
+  transition: background-image 1200ms ease-in-out, opacity 1200ms ease-in-out;
+}
+
+/* A photograph has no contrast contract with the text on top of it, so each
+   period gets a veil sized to how bright that image actually is. Without one,
+   the greeting sits on whatever happens to be behind it. */
+.bg-photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* The morning and evening frames are bright enough that the greeting sat at
+     4.4:1 over them — inside the margin, but only just. Deepened until the
+     worst frame of the brightest image clears the floor. */
+  background: linear-gradient(
+    100deg,
+    rgba(6, 6, 10, 0.76) 0%,
+    rgba(6, 6, 10, 0.62) 45%,
+    rgba(6, 6, 10, 0.52) 100%
+  );
+}
+.bg-photo--night::after {
+  background: linear-gradient(
+    100deg,
+    rgba(6, 6, 10, 0.42) 0%,
+    rgba(6, 6, 10, 0.24) 45%,
+    rgba(6, 6, 10, 0.14) 100%
+  );
+}
+
+/* Light mode reads dark text, so the veil lifts toward white instead. */
+.bg-photo--light::after {
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0.72) 0%,
+    rgba(255, 255, 255, 0.58) 45%,
+    rgba(255, 255, 255, 0.46) 100%
+  );
+}
+
+/* ── Liquid glass ──────────────────────────────────────────────────────
+   The recipe from components/ui/liquid-glass.tsx, applied as a class rather
+   than by wrapping the sidebar and composer in the component.
+
+   Why a class: both elements already carry sized, positioned layout and a
+   pile of existing rules. Wrapping them would have inserted a new stacking
+   and overflow context around each — `overflow: hidden` alone would have
+   clipped the composer's popover menus. The look is identical; the DOM is
+   untouched.
+
+   Four layers make it read as glass rather than as a tinted box:
+     backdrop-filter   refracts what is behind it
+     radial background gives the surface its own falloff
+     inset top hairline the specular edge where light catches
+     outer glow        lifts it off the backdrop */
+.liquid-glass,
+.sidebar-liquid-inner {
+  background: radial-gradient(
+    140% 120% at 50% 0%,
+    rgba(44, 44, 58, 0.72) 0%,
+    rgba(20, 20, 28, 0.84) 45%,
+    rgba(10, 10, 16, 0.92) 100%
+  ) !important;
+  backdrop-filter: blur(12px) saturate(130%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(130%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.40),
+    0 0 36px rgba(59, 130, 246, 0.14),
+    0 0 54px rgba(236, 72, 153, 0.10),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.40),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+.composer {
+  background: rgba(15, 15, 20, 0.88) !important;
+  backdrop-filter: blur(18px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(120%) !important;
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.12)) !important;
+  box-shadow: none !important;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease !important;
+}
+
+.composer--focused,
+.composer:focus-within {
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  background: rgba(18, 22, 24, 0.94) !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Light mode inverts the tint: the same glass over a pale backdrop needs to
+   settle toward white, or dark text lands on a dark pane. */
+:root[data-theme='light'] .liquid-glass,
+:root[data-theme='light'] .sidebar-liquid-inner,
+:root[data-theme='light'] .composer {
+  background: radial-gradient(
+    140% 120% at 50% 0%,
+    rgba(255, 255, 255, 0.92) 0%,
+    rgba(255, 255, 255, 0.78) 60%,
+    rgba(255, 255, 255, 0.68) 100%
+  ) !important;
+  border: 1px solid rgba(16, 24, 40, 0.10) !important;
+  box-shadow: none !important;
+}
+
+:root[data-theme='light'] .composer--focused,
+:root[data-theme='light'] .composer:focus-within {
+  border-color: rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* The specular hairline across the top edge — the component draws this as a
+   child element; here it is a pseudo-element so no markup changes. */
+.sidebar-liquid-inner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 8%;
+  right: 8%;
+  height: 1.5px;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 255, 255, 0.75) 0%,
+    rgba(255, 255, 255, 0) 80%
+  );
+}
+:root[data-theme='light'] .sidebar-liquid-inner::before {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0) 80%
+  );
+}
+
+/* Both need a positioning context for the hairline. The composer already has
+   one; the sidebar inner may not. */
+.sidebar-liquid-inner { position: relative; }
+
+/* Text sitting on glass over a photograph needs a little more weight than
+   text on a flat page. The pane can only be darkened so far before it stops
+   being glass, so the last of the contrast is bought here instead — measured
+   against the brightest of the three backdrops. */
+:root[data-theme='dark'] .composer-input::placeholder,
+:root:not([data-theme='light']) .composer-input::placeholder {
+  color: #C7C7CE;
+}
+:root[data-theme='dark'] .nav-item .nav-text,
+:root:not([data-theme='light']) .nav-item .nav-text {
+  color: #E6E6EC;
+}
+
+/* ══════════════════════════════════════════════════════════════════ */
+/* FLOATING RAIL SIDEBAR                                               */
+/*                                                                     */
+/* The rail is 68px at rest and opens to 248px on hover. Previously it */
+/* laid out three children with `justify-content: space-between` — a   */
+/* brand, four nav rows and an account card — so on a 950px column the */
+/* browser distributed roughly 600px of slack into two enormous gaps:  */
+/* one under the logo, one under the last nav row. It read as a broken */
+/* layout rather than a sparse one.                                    */
+/*                                                                     */
+/* Now the column is: brand, then a nav region that takes the          */
+/* remaining height and scrolls if it has to, then Settings and the    */
+/* account pinned to the bottom. Nothing floats in the middle.         */
+/*                                                                     */
+/* COLOUR: every value below is built from `--ink`, the theme's        */
+/* foreground channel — 245,245,245 in dark, 16,16,16 in light. That   */
+/* is what makes the icons and labels white on the dark rail and black */
+/* on the light one from a single rule. The old block hard-coded       */
+/* `rgba(255,255,255,0.45)` and `#FFFFFF`, which is why the entire nav */
+/* was invisible in light mode.                                        */
+/* ══════════════════════════════════════════════════════════════════ */
+
+.app-shell .sidebar {
+  /* One place to retune the rail's ink. */
+  --nav-idle: rgba(var(--ink), 0.58);
+  --nav-hover: rgba(var(--ink), 0.88);
+  --nav-active: var(--text-primary);
+  --nav-active-bg: rgba(var(--ink), 0.08);
+  --rail-w: 68px;
+  --rail-w-open: 248px;
+
+  width: var(--rail-w) !important;
+  height: calc(100vh - 24px) !important;
+  margin: 12px 0 12px 12px !important;
+  padding: 0 !important;
+  position: relative !important;
+  z-index: 50 !important;
+  flex-shrink: 0 !important;
+  transition: width 280ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+  overflow: visible !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.edge-trigger-btn {
+  display: none !important;
+}
+
+.app-shell .sidebar:hover,
+.app-shell .sidebar:focus-within {
+  width: var(--rail-w-open) !important;
+}
+
+.app-shell .sidebar-liquid-inner {
+  display: flex !important;
+  flex-direction: column !important;
+  /* Not space-between. The nav region owns the slack via `flex: 1`, which
+     keeps the groups tight under the brand instead of centring them in a
+     column of air. */
+  justify-content: flex-start !important;
+  align-items: stretch !important;
+  height: 100% !important;
+  padding: 16px 10px 12px !important;
+  gap: 0 !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.app-shell .sidebar:hover .sidebar-liquid-inner,
+.app-shell .sidebar:focus-within .sidebar-liquid-inner {
+  padding: 16px 12px 12px !important;
+}
+
+/* --- BRAND --- */
+.app-shell .sidebar-header {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  height: 40px !important;
+  margin: 0 0 4px 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+.app-shell .sidebar:hover .sidebar-header,
+.app-shell .sidebar:focus-within .sidebar-header {
+  justify-content: flex-start !important;
+  padding: 0 8px !important;
+}
+
+.app-shell .sidebar-brand {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  justify-content: center !important;
+  min-width: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.app-shell .sidebar:hover .sidebar-brand,
+.app-shell .sidebar:focus-within .sidebar-brand {
+  justify-content: flex-start !important;
+}
+
+/* The mark is single-colour art, so flattening it to black and inverting
+   gives a clean white silhouette on the dark rail; light mode stops at the
+   flatten and keeps it black. `--logo-filter` already encodes exactly that
+   per theme, so it is used rather than a second pair of hard-coded rules —
+   the previous `invert(1)` here produced a colour-inverted mark, not a
+   black one. */
+.app-shell .sidebar-brand-logo,
+.app-shell .sidebar-brand-logo--loading {
+  width: 26px !important;
+  height: 26px !important;
+  flex-shrink: 0 !important;
+  animation: none !important;
+  transform: none !important;
+  filter: var(--logo-filter) !important;
+  transition: filter 240ms ease !important;
+}
+
+.app-shell .sidebar-brand-name {
+  display: none !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+  color: var(--text-primary) !important;
+  white-space: nowrap !important;
+}
+
+.app-shell .sidebar:hover .sidebar-brand-name,
+.app-shell .sidebar:focus-within .sidebar-brand-name {
+  display: inline-block !important;
+}
+
+.app-shell .sidebar-close-btn {
+  display: none !important;
+}
+
+/* --- NAV REGION --- */
+/* Takes the leftover height and scrolls inside itself. Without `min-height:
+   0` a flex child refuses to shrink below its content, so twelve rows on a
+   short window would push Settings and the account off the bottom edge. */
+.app-shell .nav-list {
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  align-items: stretch !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  margin: 8px 0 0 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: none !important;
+}
+
+.app-shell .nav-list::-webkit-scrollbar { display: none !important; }
+
+.app-shell .nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Collapsed: a hairline is the whole separator. Expanded: the hairline
+   becomes a caption. Same element, so nothing reflows on open. */
+.app-shell .nav-group-label {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.app-shell .nav-group:first-child .nav-group-label {
+  margin-top: 0;
+  height: 8px;
+}
+
+.app-shell .nav-group-label::before {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(var(--ink), 0.10);
+  transition: flex 220ms cubic-bezier(0.16, 1, 0.3, 1), opacity 160ms ease;
+}
+
+.app-shell .nav-group-label span {
+  flex: 0 0 auto;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: rgba(var(--ink), 0.42);
+  transition: max-width 260ms cubic-bezier(0.16, 1, 0.3, 1), opacity 160ms ease;
+}
+
+.app-shell .sidebar:hover .nav-group-label span,
+.app-shell .sidebar:focus-within .nav-group-label span {
+  max-width: 180px;
+  opacity: 1;
+}
+
+.app-shell .sidebar:hover .nav-group-label::before,
+.app-shell .sidebar:focus-within .nav-group-label::before {
+  flex: 0 0 0;
+  opacity: 0;
+}
+
+.app-shell .sidebar:hover .nav-group:first-child .nav-group-label,
+.app-shell .sidebar:focus-within .nav-group:first-child .nav-group-label {
+  height: 22px;
+}
+
+.app-shell .nav-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.app-shell .nav-group-items li { display: flex; }
+
+/* --- NAV ITEMS --- */
+.app-shell .nav-item,
+.app-shell .nav-item--active {
+  width: 44px !important;
+  height: 40px !important;
+  padding: 0 !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-radius: 10px !important;
+  color: var(--nav-idle) !important;
+  cursor: pointer !important;
+  position: relative !important;
+  transition: color 160ms ease, background 160ms ease !important;
+}
+
+.app-shell .sidebar:hover .nav-item,
+.app-shell .sidebar:hover .nav-item--active,
+.app-shell .sidebar:focus-within .nav-item,
+.app-shell .sidebar:focus-within .nav-item--active {
+  width: 100% !important;
+  margin: 0 !important;
+  justify-content: flex-start !important;
+  padding: 0 10px !important;
+  gap: 12px !important;
+}
+
+.app-shell .nav-item:hover {
+  color: var(--nav-hover) !important;
+  background: rgba(var(--ink), 0.05) !important;
+}
+
+/* The active row is marked by fill AND weight, not by colour alone. */
+.app-shell .nav-item--active,
+.app-shell .nav-item--active:hover {
+  color: var(--nav-active) !important;
+  background: var(--nav-active-bg) !important;
+  font-weight: 600 !important;
+}
+
+.app-shell .nav-item--active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 2.5px;
+  height: 18px;
+  transform: translateY(-50%);
+  border-radius: 0 3px 3px 0;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.app-shell .sidebar:hover .nav-item--active::before,
+.app-shell .sidebar:focus-within .nav-item--active::before {
+  opacity: 1;
+}
+
+.app-shell .nav-icon {
+  width: 20px !important;
+  height: 20px !important;
+  flex-shrink: 0 !important;
+  color: inherit !important;
+  margin: 0 !important;
+}
+
+.app-shell .nav-text {
+  display: none !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: inherit !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.app-shell .sidebar:hover .nav-text,
+.app-shell .sidebar:focus-within .nav-text {
+  display: inline-block !important;
+}
+
+/* Settings, pinned above the account. */
+.app-shell .nav-item--foot {
+  flex-shrink: 0 !important;
+  margin: 8px auto 6px !important;
+}
+
+.app-shell .sidebar:hover .nav-item--foot,
+.app-shell .sidebar:focus-within .nav-item--foot {
+  margin: 8px 0 6px !important;
+}
+
+/* --- ACCOUNT --- */
+.app-shell .account-wrap {
+  width: 100% !important;
+  display: flex !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+  padding: 8px 0 0 0 !important;
+  border-top: 1px solid rgba(var(--ink), 0.08) !important;
+  position: relative !important;
+}
+
+.app-shell .account-card,
+.app-shell .account-card--open,
+.app-shell .account-card:hover {
+  width: 100% !important;
+  height: auto !important;
+  padding: 4px !important;
+  border-radius: 10px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  cursor: pointer !important;
+  gap: 10px !important;
+  transition: background 160ms ease !important;
+}
+
+.app-shell .account-card:hover {
+  background: rgba(var(--ink), 0.05) !important;
+}
+
+.app-shell .sidebar:hover .account-card,
+.app-shell .sidebar:focus-within .account-card {
+  justify-content: flex-start !important;
+  padding: 6px !important;
+}
+
+.app-shell .account-avatar {
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 50% !important;
+  background: rgba(var(--ink), 0.10) !important;
+  color: var(--text-primary) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  flex-shrink: 0 !important;
+  border: 1px solid rgba(var(--ink), 0.16) !important;
+}
+
+.app-shell .account-info,
+.app-shell .account-chevron {
+  display: none !important;
+}
+
+.app-shell .sidebar:hover .account-info,
+.app-shell .sidebar:focus-within .account-info {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  text-align: left !important;
+  overflow: hidden !important;
+  min-width: 0 !important;
+  flex: 1 !important;
+}
+
+.app-shell .sidebar:hover .account-chevron,
+.app-shell .sidebar:focus-within .account-chevron {
+  display: block !important;
+  color: rgba(var(--ink), 0.45) !important;
+  flex-shrink: 0 !important;
+}
+
+.app-shell .account-name {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: var(--text-primary) !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+  overflow: hidden !important;
+  max-width: 100% !important;
+}
+
+.app-shell .account-status {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  font-size: 11px !important;
+  color: rgba(var(--ink), 0.55) !important;
+}
+
+/* --- SHORT WINDOWS --- */
+/* Below ~720px of height twelve rows plus chrome will not fit at full size,
+   so the rows tighten before the list resorts to scrolling. */
+@media (max-height: 780px) {
+  .app-shell .nav-item,
+  .app-shell .nav-item--active { height: 36px !important; }
+  .app-shell .nav-group-label { height: 18px; margin-top: 4px; }
+  .app-shell .sidebar-header { height: 34px !important; }
+}
+
+
+/* --- MARKDOWN FONTS --- */
+.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6 {
+  font-family: 'Mirava Sans', 'Bebas Neue', sans-serif;
+  letter-spacing: 2px;
+  margin-top: 1.2em;
+  margin-bottom: 0.4em;
+  line-height: 1.1;
+}
+.markdown-body p, .markdown-body li, .markdown-body span { font-family: 'Poppins', sans-serif; }
+

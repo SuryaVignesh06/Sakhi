@@ -1,0 +1,12 @@
+.gradient-waves-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: -10;
+  /* Inert. The layer spans the whole viewport, so without this it can swallow
+     a click meant for the UI wherever a gap opens up between panels. The
+     parallax reads the pointer from a window listener instead. */
+  pointer-events: none;
+}

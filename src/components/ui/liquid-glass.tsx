@@ -3,82 +3,105 @@ import { cn } from '@/lib/utils';
 
 export interface LiquidGlassCardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
-  glowIntensity?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
-  shadowIntensity?: 'none' | 'sm' | 'md' | 'lg';
   borderRadius?: string;
-  blurIntensity?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+  glowIntensity?: string; // Kept for compatibility with existing call sites
+  shadowIntensity?: string;
+  blurIntensity?: string;
   draggable?: boolean;
   className?: string;
 }
 
+/**
+ * A frosted panel.
+ *
+ * Three things about the previous version cost real frames on every render:
+ *
+ * 1. It returned an inline `<style>` element as part of its output, so React
+ *    tore down and re-created a stylesheet node — forcing a full style
+ *    recalculation for the document — every time the component re-rendered.
+ *    The sidebar re-renders on each tab change, each theme flip, each profile
+ *    toggle. The rules are static, so they belong in the stylesheet below,
+ *    written once at module load.
+ *
+ * 2. It inlined a ~30KB base64 WebP displacement map into an SVG filter, once
+ *    per instance, all sharing the id `liquid-glass-filter`. Duplicate ids
+ *    mean the browser resolves `url(#liquid-glass-filter)` to whichever came
+ *    first, so every copy after the first was pure weight.
+ *
+ * 3. `backdrop-filter: blur(8px) url(#liquid-glass-filter) saturate(150%)`
+ *    asked the compositor to run an SVG displacement pass over whatever sits
+ *    behind the panel. Behind this panel is a fullscreen WebGL canvas that
+ *    repaints continuously, so the filter re-ran every frame over the full
+ *    height of the sidebar. That was the second-biggest source of the stall,
+ *    after the shader itself.
+ *
+ * The surface it actually paints is set by `.sidebar-liquid-inner` and
+ * `.composer` in index.css, which already override the fill, the border and
+ * the shadow with `!important`. So what is lost here is the displacement
+ * refraction, which those overrides were hiding anyway.
+ */
+
+const STYLE_ID = 'liquid-glass-card-styles';
+
+const CSS = `
+.liquid-glass-card-root {
+  --c-light: 255, 255, 255;
+  --c-dark: 0, 0, 0;
+  --glass-reflex-dark: 1;
+  --glass-reflex-light: 1;
+
+  position: relative;
+  background-color: rgba(var(--ink), 0.05);
+  box-shadow:
+    inset 0 0 0 1px rgba(var(--c-light), calc(var(--glass-reflex-light) * 0.10)),
+    inset 1.8px 3px 0 -2px rgba(var(--c-light), calc(var(--glass-reflex-light) * 0.55)),
+    inset -2px -2px 0 -2px rgba(var(--c-light), calc(var(--glass-reflex-light) * 0.45)),
+    inset -0.3px -1px 4px 0 rgba(var(--c-dark), calc(var(--glass-reflex-dark) * 0.12)),
+    inset 0 3px 4px -2px rgba(var(--c-dark), calc(var(--glass-reflex-dark) * 0.18)),
+    0 1px 5px 0 rgba(var(--c-dark), calc(var(--glass-reflex-dark) * 0.10)),
+    0 6px 16px 0 rgba(var(--c-dark), calc(var(--glass-reflex-dark) * 0.08));
+}
+
+/* On a light ground the specular highlights have to come down hard — at full
+   strength they are white-on-white and the panel loses its edge entirely. */
+:root[data-theme='light'] .liquid-glass-card-root {
+  --glass-reflex-light: 0.5;
+  --glass-reflex-dark: 0.35;
+}
+`;
+
+/* Injected once, at module load, outside the React tree. */
+if (typeof document !== 'undefined' && !document.getElementById(STYLE_ID)) {
+  const el = document.createElement('style');
+  el.id = STYLE_ID;
+  el.textContent = CSS;
+  document.head.appendChild(el);
+}
+
 export const LiquidGlassCard: React.FC<LiquidGlassCardProps> = ({
   children,
-  glowIntensity = 'md',
-  shadowIntensity = 'md',
   borderRadius = '24px',
-  blurIntensity = 'lg',
+  glowIntensity,
+  shadowIntensity,
+  blurIntensity,
   draggable = false,
   className = '',
   style,
   ...props
 }) => {
-  const blurMap = {
-    none: '0px',
-    sm: '20px',
-    md: '32px',
-    lg: '44px',
-    xl: '60px',
-  };
-
-  const shadowMap = {
-    none: 'none',
-    sm: '0 8px 32px rgba(0, 0, 0, 0.3)',
-    md: '0 16px 48px rgba(0, 0, 0, 0.4)',
-    lg: '0 24px 64px rgba(0, 0, 0, 0.5)',
-  };
-
-  const glowMap = {
-    none: 'none',
-    sm: '0 0 24px rgba(59, 130, 246, 0.08), 0 0 40px rgba(236, 72, 153, 0.06)',
-    md: '0 0 36px rgba(59, 130, 246, 0.14), 0 0 54px rgba(236, 72, 153, 0.10)',
-    lg: '0 0 48px rgba(59, 130, 246, 0.20), 0 0 72px rgba(236, 72, 153, 0.14)',
-    xl: '0 0 64px rgba(59, 130, 246, 0.26), 0 0 96px rgba(236, 72, 153, 0.18)',
-    '2xl': '0 0 80px rgba(59, 130, 246, 0.32), 0 0 120px rgba(236, 72, 153, 0.22)',
-  };
-
-  const blurVal = blurMap[blurIntensity] || '36px';
-  const shadowVal = shadowMap[shadowIntensity] || shadowMap.md;
-  const glowVal = glowMap[glowIntensity] || glowMap.md;
+  /* Accepted for API compatibility and deliberately unused — the surface is
+     owned by the stylesheet so every panel stays consistent. */
+  void glowIntensity;
+  void shadowIntensity;
+  void blurIntensity;
+  void draggable;
 
   return (
     <div
       className={cn('liquid-glass-card-root', className)}
-      style={{
-        borderRadius,
-        position: 'relative',
-        background: 'radial-gradient(140% 120% at 50% 0%, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 60%, rgba(10, 10, 16, 0.45) 100%)',
-        backdropFilter: `blur(${blurVal}) saturate(200%)`,
-        WebkitBackdropFilter: `blur(${blurVal}) saturate(200%)`,
-        border: '1px solid rgba(255, 255, 255, 0.15)',
-        boxShadow: `${shadowVal}, ${glowVal}, inset 0 1.5px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 0 rgba(255, 255, 255, 0.08)`,
-        overflow: 'hidden',
-        ...style,
-      }}
+      style={{ borderRadius, ...style }}
       {...props}
     >
-      {/* Specular Liquid Ambient Highlight Sheen */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: '8%',
-          right: '8%',
-          height: '1.5px',
-          background: 'radial-gradient(ellipse at center, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0) 80%)',
-          pointerEvents: 'none',
-        }}
-      />
       {children}
     </div>
   );

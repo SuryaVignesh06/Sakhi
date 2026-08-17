@@ -1,9 +1,29 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Settings as SettingsIcon, Cpu, Sliders, Volume2, Bot, ShieldCheck, 
-  HardDrive, Palette, Lock, Code, Info, ChevronRight, Check, X, Folder, Key, Trash2, Download, RefreshCw
+  HardDrive, Palette, Lock, Code, Info, ChevronRight, Check, X, Folder, Key, Trash2, Download, RefreshCw, Plug
 } from 'lucide-react';
 import { SystemMetrics } from './types';
+import { ConnectionsPanel } from './components/Connections/ConnectionsPanel';
+import { fetchAgents, type AgentInfo } from './api';
+
+/**
+ * Marks a group of controls that are laid out but not connected to anything.
+ *
+ * A toggle that slides and changes nothing is worse than no toggle: it tells
+ * the user they have configured something. These are disabled outright and
+ * labelled, so the panel reports its own state honestly until the backing
+ * work lands.
+ */
+const NotWired: React.FC<{ note: string; children: React.ReactNode }> = ({ note, children }) => (
+  <>
+    <div className="settings-notwired-note">
+      <Info size={14} />
+      <span>{note}</span>
+    </div>
+    <div className="settings-notwired">{children}</div>
+  </>
+);
 
 interface SettingsViewProps {
   onClose: () => void;
@@ -19,6 +39,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onThemeChange,
 }) => {
   const [activeCategory, setActiveCategory] = useState<string>('General');
+
+  /* The real specialists, read from the backend registry. */
+  const [agentRoster, setAgentRoster] = useState<AgentInfo[]>([]);
+  useEffect(() => {
+    if (activeCategory === 'Agents' && agentRoster.length === 0) {
+      void fetchAgents().then(setAgentRoster);
+    }
+  }, [activeCategory, agentRoster.length]);
 
   // Form State
   const [assistantName, setAssistantName] = useState('Sakhi');
@@ -112,16 +140,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [sensitivity, setSensitivity] = useState(70);
   const [voiceSpeed, setVoiceSpeed] = useState(1.0);
 
-  // Agents State
-  const [agents, setAgents] = useState({
-    planner: true,
-    browser: true,
-    desktop: true,
-    coding: true,
-    memory: true,
-    vision: false,
-    research: false
-  });
+  /* The Agents panel now reads the real roster from the backend, so the
+     hardcoded list that used to sit here is gone. It named `vision` and
+     `automation` agents that never existed and omitted the ones that do. */
 
   // Automation State
   const [automation, setAutomation] = useState({
@@ -200,6 +221,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const categories = [
     { id: 'General', icon: SettingsIcon },
     { id: 'AI Models', icon: Bot },
+    { id: 'Connections', icon: Plug },
     { id: 'Voice', icon: Volume2 },
     { id: 'Agents', icon: Sliders },
     { id: 'Automation', icon: ShieldCheck },
@@ -248,6 +270,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
           {/* Category Content Area */}
           <div className="settings-category-content">
+            {activeCategory === 'Connections' && (
+              <div className="settings-section">
+                <h3>Connections</h3>
+                <p className="section-sub">
+                  Connect an app and Sakhi asks it what it can do. Those actions join
+                  its toolset, so you can just say what you want done.
+                </p>
+                <ConnectionsPanel />
+              </div>
+            )}
+
             {activeCategory === 'General' && (
               <div className="settings-section">
                 <h3>General</h3>
@@ -436,6 +469,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <h3>Voice & Audio Engine</h3>
                 <p className="section-sub">Configure local Speech-to-Text and Kokoro TTS speech engines</p>
 
+                <NotWired note="Voice works — Kokoro for speech, Moonshine or Parakeet for recognition — but these controls don't change the engines yet. What runs is whatever the backend selects.">
                 <div className="setting-row">
                   <label>Wake Word</label>
                   <input type="text" value={wakeWord} onChange={e => setWakeWord(e.target.value)} className="setting-input-text" />
@@ -503,32 +537,40 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <button className="btn-secondary" style={{ width: 'fit-content' }}>
                   <Volume2 size={14} /> Test Voice Synthesis
                 </button>
+                </NotWired>
               </div>
             )}
 
             {activeCategory === 'Agents' && (
               <div className="settings-section">
-                <h3>Agents Execution Engine</h3>
-                <p className="section-sub">Enable or disable specialized autonomous sub-agents</p>
+                <h3>Agents</h3>
+                <p className="section-sub">
+                  The specialists the Supervisor routes work to. An agent is a scope — what
+                  makes the Browser agent a browser agent is that it can drive a browser
+                  and cannot touch your files.
+                </p>
 
-                {Object.entries(agents).map(([key, val]) => (
-                  <div key={key} className="setting-row toggle-row">
-                    <div>
-                      <label style={{ textTransform: 'capitalize' }}>{key} Agent</label>
-                      <p className="setting-desc">Autonomously handle {key} related tasks</p>
+                {/* Read from the backend registry rather than hardcoded. The list
+                    that used to live here named seven agents that matched no code,
+                    with toggles that switched nothing. */}
+                {agentRoster.length === 0 ? (
+                  <p className="setting-desc">
+                    Can't reach the backend, so the agent list can't be loaded.
+                  </p>
+                ) : (
+                  agentRoster.map(a => (
+                    <div key={a.name} className="setting-row">
+                      <div>
+                        <label>{a.title}</label>
+                        <p className="setting-desc">{a.purpose}</p>
+                        <p className="setting-desc" style={{ opacity: 0.75, marginTop: 4 }}>
+                          Tools: {a.tools.join(', ')}
+                          {a.usesConnectedApps && ' · plus your connected apps'}
+                        </p>
+                      </div>
                     </div>
-                    <button 
-                      className={`toggle-btn ${val ? 'on' : ''}`}
-                      onClick={() => setAgents(prev => ({ ...prev, [key]: !val }))}
-                    >
-                      {val ? 'ON' : 'OFF'}
-                    </button>
-                  </div>
-                ))}
-
-                <button className="btn-secondary" style={{ width: 'fit-content', marginTop: '8px' }}>
-                  + Custom Agents
-                </button>
+                  ))
+                )}
               </div>
             )}
 
@@ -537,19 +579,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <h3>Automation & OS Control</h3>
                 <p className="section-sub">Permissions for operating system and browser control</p>
 
-                {Object.entries(automation).map(([key, val]) => (
-                  <div key={key} className="setting-row toggle-row">
-                    <div>
-                      <label style={{ textTransform: 'capitalize' }}>{key.replace(/([A-Z])/g, ' $1')}</label>
+                <NotWired note="Automation is governed by the per-tool permission gate today — you're asked before anything writes to your machine. These switches aren't connected to that yet, so an autonomy setting lives here in a later build.">
+                  {Object.entries(automation).map(([key, val]) => (
+                    <div key={key} className="setting-row toggle-row">
+                      <div>
+                        <label style={{ textTransform: 'capitalize' }}>{key.replace(/([A-Z])/g, ' $1')}</label>
+                      </div>
+                      <button className={`toggle-btn ${val ? 'on' : ''}`} disabled>
+                        {val ? 'ON' : 'OFF'}
+                      </button>
                     </div>
-                    <button 
-                      className={`toggle-btn ${val ? 'on' : ''}`}
-                      onClick={() => setAutomation(prev => ({ ...prev, [key]: !val }))}
-                    >
-                      {val ? 'ON' : 'OFF'}
-                    </button>
-                  </div>
-                ))}
+                  ))}
+                </NotWired>
               </div>
             )}
 

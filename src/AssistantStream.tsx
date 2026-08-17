@@ -1,9 +1,10 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle, Bot, Check, ChevronDown, Code2, Copy, Eye, Globe,
-  HardDrive, Loader2, Monitor, Search, Shield, Sparkles, Wrench, X, Zap,
+  HardDrive, Loader2, Monitor, Search, Shield, Sparkles, Square, Volume2, Wrench, X, Zap,
 } from 'lucide-react';
 import type { AgentName, SessionState, ToolCall } from './events';
+import { ShimmeringText } from './components/ui/shimmering-text';
 import './AssistantStream.css';
 
 /* Icons per agent/tool. Unknown names fall back rather than render nothing —
@@ -100,7 +101,9 @@ export const ToolCards = memo(function ToolCards({ s }: { s: SessionState }) {
 
 /* ─── CLAUDE-STYLE THINKING & BACKGROUND PROCESS ACCORDION ──────── */
 
-export const BackgroundProcessAccordion = memo(function BackgroundProcessAccordion({ s }: { s: SessionState }) {
+export const BackgroundProcessAccordion = memo(function BackgroundProcessAccordion({
+  s, logoSrc,
+}: { s: SessionState; logoSrc: string }) {
   const hasContent = Boolean(s.thinking || s.stages.length || s.toolOrder.length || s.tasks);
   // Default open while actively running, collapse when finished
   const [open, setOpen] = useState(() => s.active);
@@ -122,10 +125,16 @@ export const BackgroundProcessAccordion = memo(function BackgroundProcessAccordi
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
       >
+        {/* One line, one mark. The rotating logo used to live in its own row
+            directly above this header, which put two spinning marks on screen
+            for the same piece of work. The mark moved in here and the row
+            above is gone. */}
         <div className="as-process-head-left">
-          <Sparkles size={14} className={s.active ? 'as-spin text-accent' : ''} />
+          {s.active && <AssistantMark active src={logoSrc} size={15} />}
           <span className="as-process-title">
-            {s.active ? `Thinking & ${activeStage}…` : 'Thinking & Background Processes'}
+            {s.active
+              ? <ShimmeringText text={`${activeStage}…`} />
+              : 'Thinking & Background Processes'}
           </span>
           {toolCount > 0 && (
             <span className="as-process-badge">{toolCount} tool{toolCount > 1 ? 's' : ''}</span>
@@ -231,12 +240,25 @@ export const Markdown = memo(function Markdown({ text }: { text: string }) {
       continue;
     }
 
-    // Heading
-    const h = line.match(/^(#{1,4})\s+(.*)$/);
+    // Heading.
+    // The level carries a class as well as a tag: `#` used to render as an
+    // <h3> and `####` as an <h6>, which browsers draw SMALLER than body text.
+    // With the global reset zeroing margins there was no visible difference
+    // between a heading and the paragraph under it at all.
+    const h = line.match(/^(#{1,6})\s+(.*)$/);
     if (h) {
-      const lvl = h[1].length;
-      const Tag = (['h3', 'h4', 'h5', 'h6'] as const)[lvl - 1];
-      out.push(<Tag key={`h${i}`} className="as-h">{inline(h[2], `h${i}`)}</Tag>);
+      const lvl = Math.min(h[1].length, 4);
+      const Tag = (['h2', 'h3', 'h4', 'h5'] as const)[lvl - 1];
+      out.push(
+        <Tag key={`h${i}`} className={`as-h as-h--${lvl}`}>{inline(h[2], `h${i}`)}</Tag>
+      );
+      i++;
+      continue;
+    }
+
+    // Thematic break
+    if (/^\s*([-*_])\s*\1\s*\1[\s\-*_]*$/.test(line)) {
+      out.push(<hr key={`r${i}`} className="as-hr" />);
       i++;
       continue;
     }
@@ -288,8 +310,15 @@ export const Markdown = memo(function Markdown({ text }: { text: string }) {
 
     // Paragraph
     const para: string[] = [];
-    while (i < lines.length && lines[i].trim() && !/^\s*([-*]|\d+\.|#{1,4}\s|>|```)/.test(lines[i])) para.push(lines[i++]);
+    para.push(lines[i++]);
+    while (i < lines.length && lines[i].trim() && !/^\s*([-*]\s+|\d+\.\s+|#{1,6}\s|>|```|\|)/.test(lines[i])) {
+      para.push(lines[i++]);
+    }
     out.push(<p key={`p${i}`} className="as-p">{inline(para.join(' '), `p${i}`)}</p>);
+  }
+
+  if (out.length === 0 && text.trim()) {
+    return <div className="as-md"><p className="as-p">{text}</p></div>;
   }
 
   return <div className="as-md">{out}</div>;
@@ -370,15 +399,20 @@ export function AssistantMark({ active, src, size = 20 }: { active: boolean; src
 
 /* ─── STREAMING RESPONSE ──────────────────────────────────────────── */
 
-export const StreamedResponse = memo(function StreamedResponse({ s }: { s: SessionState }) {
+export const StreamedResponse = memo(function StreamedResponse({
+  s, speaking = false, onSpeak,
+}: { s: SessionState; speaking?: boolean; onSpeak?: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
 
-  // Follow the tail while streaming, but only if the user is already near it.
   useEffect(() => {
     const el = ref.current?.parentElement;
     if (!el) return;
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
-    if (nearBottom) el.scrollTop = el.scrollHeight;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 140;
+    if (!nearBottom) return;
+    let rId = requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight;
+    });
+    return () => cancelAnimationFrame(rId);
   }, [s.response]);
 
   if (!s.response) return null;
@@ -386,8 +420,21 @@ export const StreamedResponse = memo(function StreamedResponse({ s }: { s: Sessi
     <div className="as-response" ref={ref}>
       <Markdown text={s.response} />
       {s.active && <span className="as-caret" aria-hidden />}
-      {!s.active && (s.tokens || s.duration) && (
+      {!s.active && (
         <div className="as-meta">
+          {/* Reading aloud is on request. Auto-playing every answer read a
+              long technical reply start to finish while you were already
+              reading it. */}
+          <button
+            type="button"
+            className={`as-speak ${speaking ? 'is-speaking' : ''}`}
+            onClick={onSpeak}
+            title={speaking ? 'Stop reading' : 'Read this answer aloud'}
+            aria-label={speaking ? 'Stop reading' : 'Read this answer aloud'}
+          >
+            {speaking ? <Square size={12} /> : <Volume2 size={13} />}
+            <span>{speaking ? 'Stop' : 'Speak'}</span>
+          </button>
           {s.tokens != null && <span>{s.tokens} tokens</span>}
           {s.duration != null && <span>{s.duration}s</span>}
         </div>
@@ -399,12 +446,15 @@ export const StreamedResponse = memo(function StreamedResponse({ s }: { s: Sessi
 /* ─── COMPOSITE ───────────────────────────────────────────────────── */
 
 export default function AssistantStream({
-  s, logoSrc, onDismissNotice, onPermission,
+  s, logoSrc, onDismissNotice, onPermission, speaking, onSpeak,
 }: {
   s: SessionState;
   logoSrc: string;
   onDismissNotice?: (id: string) => void;
   onPermission?: (id: string, granted: boolean) => void;
+  /** True while this answer is being read aloud. */
+  speaking?: boolean;
+  onSpeak?: () => void;
 }) {
   const idle =
     !s.active && !s.stages.length && !s.toolOrder.length && !s.response && !s.taskOrder.length && !s.thinking;
@@ -412,15 +462,9 @@ export default function AssistantStream({
 
   return (
     <div className="as-root">
-      {s.active && (
-        <div className="as-markrow">
-          <AssistantMark active src={logoSrc} />
-          {s.agent && <span className="as-agent">{s.agent} agent</span>}
-        </div>
-      )}
       <Notices s={s} onDismiss={onDismissNotice} onPermission={onPermission} />
-      <BackgroundProcessAccordion s={s} />
-      <StreamedResponse s={s} />
+      <BackgroundProcessAccordion s={s} logoSrc={logoSrc} />
+      <StreamedResponse s={s} speaking={speaking} onSpeak={onSpeak} />
     </div>
   );
 }

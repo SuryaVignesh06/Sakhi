@@ -40,6 +40,11 @@ export const db = {
     meta?: { provider?: string; model?: string; tokens?: number }
   ) {
     try {
+      await prisma.conversation.upsert({
+        where: { id: conversationId },
+        update: {},
+        create: { id: conversationId },
+      });
       return await prisma.message.create({
         data: { conversationId, role, content, ...meta },
       });

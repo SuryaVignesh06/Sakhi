@@ -78,7 +78,11 @@ async function locate(app: AppDef): Promise<{ exe: string; version: string } | n
 }
 
 export interface AppsArgs {
-  action: 'list' | 'open' | 'git' | 'run';
+  /* Kept in step with APPS_SCHEMA's enum below. A 'run' action was declared
+     here but never implemented or advertised, so it could only ever have been
+     reached by a model inventing it — and would have fallen through to
+     "Unsupported action". */
+  action: 'list' | 'open' | 'git';
   app?: string;
   /** File or folder to open. */
   path?: string;
@@ -136,8 +140,16 @@ export async function runApps(args: AppsArgs, ctx: ToolContext): Promise<string>
         return JSON.stringify({ success: true, opened: def.label, path: target?.path });
       }
 
-      const argv = target ? [target.path] : [];
-      await run(hit.exe, argv, { timeout: 15_000, shell: IS_WIN });
+      /* `shell` is required on Windows because the VS Code launcher is a .cmd
+         shim, which cannot be executed directly. But a shell re-splits its
+         command line on spaces, and both the fallback exe
+         ("…\Microsoft VS Code\bin\code.cmd") and the folder being opened
+         routinely contain them — so each has to be quoted to survive as one
+         token. Without this, opening a project in VS Code failed for anyone
+         whose `code` was not on PATH. */
+      const quote = (s: string) => (IS_WIN && /\s/.test(s) ? `"${s}"` : s);
+      const argv = target ? [quote(target.path)] : [];
+      await run(quote(hit.exe), argv, { timeout: 15_000, shell: IS_WIN });
       return JSON.stringify({ success: true, opened: def.label, path: target?.path });
     }
 
