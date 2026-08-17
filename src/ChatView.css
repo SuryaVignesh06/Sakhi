@@ -1153,26 +1153,10 @@
 /* ─── MIC BUTTON RING ─────────────────────────────────────────────── */
 .btn-mic.is-recording {
   position: relative;
-  color: var(--accent);
+  color: var(--text-primary);
+  opacity: 0.9;
 }
 
-/* Two rings, half a cycle apart, expanding out of the badge and fading. */
-.btn-mic.is-recording::before,
-.btn-mic.is-recording::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 1px solid var(--accent);
-  animation: cvRing 1.6s ease-out infinite;
-  pointer-events: none;
-}
-.btn-mic.is-recording::after { animation-delay: 0.8s; }
-
-@keyframes cvRing {
-  from { transform: scale(1); opacity: 0.6; }
-  to   { transform: scale(1.8); opacity: 0; }
-}
 
 .btn-mic-discard {
   display: inline-flex;

@@ -102,10 +102,13 @@ export const Composer: React.FC<ComposerProps> = ({
             </button>
           </div>
 
-          <div className="composer-center-actions" style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+          <div className="composer-center-actions" style={{ flex: 1, padding: '0 10px', height: '24px' }}>
             <LiveWaveform 
               active={voiceState === 'recording'} 
               processing={voiceState === 'transcribing' || voiceState === 'thinking'} 
+              height={24}
+              barWidth={3}
+              barGap={2}
             />
           </div>
 

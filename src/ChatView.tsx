@@ -463,28 +463,30 @@ function Composer({
         </div>
       ) : (
         <div className="cv-input-stack">
-          <textarea
-            ref={ta}
-            className="composer-input"
-            placeholder="Ask Sakhi anything, or type a follow-up..."
-            rows={1}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                if (ready) onSend();
-              }
-            }}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-            aria-label="Message Sakhi"
-          />
+          {!dictation.recording && (
+            <textarea
+              ref={ta}
+              className="composer-input"
+              placeholder="Ask Sakhi anything, or type a follow-up..."
+              rows={1}
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  if (ready) onSend();
+                }
+              }}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              aria-label="Message Sakhi"
+            />
+          )}
           {/* While dictating, the waveform sits over the input and reacts to
               real amplitude. Transcribed phrases drop into the textarea
               underneath it as they land, so the box fills as you speak. */}
           {dictation.recording && (
-            <div className="cv-dictation-layer">
+            <div className="cv-dictation-layer" style={{ position: 'relative', height: '44px', paddingLeft: '12px' }}>
               <LiveWaveform
                 active={dictation.capturing}
                 processing={dictation.transcribing}
@@ -494,15 +496,15 @@ function Composer({
                 barGap={2}
                 mode="scrolling"
                 historySize={72}
-                barColor="var(--accent)"
+                barColor="var(--text-primary)"
               />
-              <span className="cv-dictation-state">
+              <span className="cv-dictation-state" style={{ position: 'absolute', left: '12px', zIndex: 10, mixBlendMode: 'difference', color: '#fff' }}>
                 {dictation.transcribing
                   ? 'Transcribing…'
                   : dictation.capturing
-                  ? 'Listening'
+                  ? 'Listening...'
                   : dictation.silent
-                  ? 'Say something'
+                  ? 'Say something...'
                   : 'Ready'}
               </span>
             </div>
@@ -519,13 +521,15 @@ function Composer({
       {dictation.error && <div className="cv-voice-note is-warn">{dictation.error.message}</div>}
 
       <div className="composer-footer">
-        <PlusMenu
-          onAttach={onAttach}
-          webSearch={webSearch}
-          onToggleWebSearch={onToggleWebSearch}
-          onOpenSettings={onOpenSettings}
-        />
-        <div className="cv-composer-right">
+        {!dictation.recording && (
+          <PlusMenu
+            onAttach={onAttach}
+            webSearch={webSearch}
+            onToggleWebSearch={onToggleWebSearch}
+            onOpenSettings={onOpenSettings}
+          />
+        )}
+        <div className="cv-composer-right" style={{ width: dictation.recording ? 'auto' : undefined }}>
           {dictation.recording && (
             <button
               className="btn-mic-discard"
@@ -551,41 +555,45 @@ function Composer({
               : <Mic size={18} strokeWidth={1.75} />}
           </button>
 
-          <button
-            className={`btn-mic btn-voice-call ${voiceActive ? 'active' : ''}`}
-            type="button"
-            onClick={onToggleVoice}
-            title="Hands-free voice mode"
-            aria-label="Hands-free voice mode"
-          >
-            <AudioLines size={18} strokeWidth={1.75} />
-          </button>
-          {ready ? (
-            <button
-              className="btn-send is-ready"
-              type="button"
-              onClick={onSend}
-              title="Send message"
-              aria-label="Send message"
-            >
-              <Send size={17} strokeWidth={1.9} />
-            </button>
-          ) : busy && onStop ? (
-            <button className="btn-send is-ready cv-send-stop" type="button" onClick={onStop} title="Stop" aria-label="Stop">
-              <Square size={14} fill="currentColor" />
-            </button>
-          ) : (
-            <button
-              className="btn-send is-hidden"
-              type="button"
-              disabled
-              tabIndex={-1}
-              aria-hidden="true"
-              title="Send"
-              aria-label="Send message"
-            >
-              <Send size={17} strokeWidth={1.9} />
-            </button>
+          {!dictation.recording && (
+            <>
+              <button
+                className={`btn-mic btn-voice-call ${voiceActive ? 'active' : ''}`}
+                type="button"
+                onClick={onToggleVoice}
+                title="Hands-free voice mode"
+                aria-label="Hands-free voice mode"
+              >
+                <AudioLines size={18} strokeWidth={1.75} />
+              </button>
+              {ready ? (
+                <button
+                  className="btn-send is-ready"
+                  type="button"
+                  onClick={onSend}
+                  title="Send message"
+                  aria-label="Send message"
+                >
+                  <Send size={17} strokeWidth={1.9} />
+                </button>
+              ) : busy && onStop ? (
+                <button className="btn-send is-ready cv-send-stop" type="button" onClick={onStop} title="Stop" aria-label="Stop">
+                  <Square size={14} fill="currentColor" />
+                </button>
+              ) : (
+                <button
+                  className="btn-send is-hidden"
+                  type="button"
+                  disabled
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  title="Send"
+                  aria-label="Send message"
+                >
+                  <Send size={17} strokeWidth={1.9} />
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
