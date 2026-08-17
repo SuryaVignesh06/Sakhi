@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { openFileOrPath } from '../tools/desktop.js';
 
 const run = promisify(execFile);
 const IS_WIN = process.platform === 'win32';
@@ -154,6 +155,18 @@ const RULES: Rule[] = [
     test: /^\s*(?:what(?:'s| is)?\s+(?:the\s+)?time|what time is it)\s*\??\s*$/i,
     run: async () =>
       `It's ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.`,
+  },
+  {
+    name: 'file.open',
+    test: /^\s*(?:please\s+)?open\s+(?:the\s+file\s+|file\s+|document\s+)?(["']?[\w\-. ]+\.[a-zA-Z0-9]{2,4}["']?)\s*$/i,
+    run: async (m) => {
+      const dummyCtx = { progress: () => {}, signal: new AbortController().signal };
+      const raw = await openFileOrPath(m[1], dummyCtx);
+      const res = JSON.parse(raw);
+      if (res.success) return res.message || `Opened ${res.opened}.`;
+      if (res.ambiguous) return `${res.message}\n` + (res.choices || []).join('\n');
+      return res.error || `Could not open ${m[1]}.`;
+    },
   },
 ];
 

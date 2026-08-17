@@ -140,10 +140,9 @@ const BUILTIN: ToolDefinition[] = [
   },
   {
     name: 'desktop',
-    title: 'Desktop Control',
+    title: 'Desktop & File Opener',
     description:
-      'Launch an application on the user\'s computer. Use action "list_apps" first ' +
-      'if unsure what is available.',
+      'Launch an application or open ANY file, document, or directory on the user\'s computer by name (e.g. "report.pdf", "notes.docx", "image.png"). Use action "open_file" or "launch_app". If multiple files match, it reports the choices so you can ask the user.',
     requiresPermission: true,
     schema: DESKTOP_SCHEMA as unknown as Record<string, unknown>,
     // The first tool with a real body. See tools/desktop.ts for why it uses

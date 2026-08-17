@@ -1,9 +1,129 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { readdir, stat } from 'node:fs/promises';
+import { homedir } from 'node:os';
+import path from 'node:path';
 import type { ToolContext } from './registry.js';
 import { listProfiles, openChrome, setDefaultProfile } from './chrome.js';
 
 const execFileAsync = promisify(execFile);
+
+export interface FileMatch {
+  name: string;
+  path: string;
+}
+
+async function searchLocalFiles(query: string): Promise<FileMatch[]> {
+  const normQuery = query.toLowerCase().trim().replace(/^['"]|['"]$/g, '');
+  if (!normQuery) return [];
+
+  const searchDirs = [
+    path.join(homedir(), 'Desktop'),
+    path.join(homedir(), 'Documents'),
+    path.join(homedir(), 'Downloads'),
+    process.cwd(),
+  ];
+
+  const matches: FileMatch[] = [];
+  const seenPaths = new Set<string>();
+
+  for (const dir of searchDirs) {
+    try {
+      const entries = await readdir(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.name.startsWith('.')) continue;
+        const fullPath = path.join(dir, entry.name);
+        const nameLower = entry.name.toLowerCase();
+
+        if (nameLower.includes(normQuery) || normQuery.includes(nameLower)) {
+          if (!seenPaths.has(fullPath)) {
+            seenPaths.add(fullPath);
+            matches.push({ name: entry.name, path: fullPath });
+          }
+        }
+      }
+    } catch {
+      /* ignore unreadable directory */
+    }
+  }
+
+  return matches;
+}
+
+async function openPathWithOS(targetPath: string, signal?: AbortSignal) {
+  if (process.platform === 'win32') {
+    await execFileAsync('cmd', ['/c', 'start', '', targetPath], { shell: false, windowsHide: true, timeout: 15_000, signal });
+  } else if (process.platform === 'darwin') {
+    await execFileAsync('open', [targetPath], { shell: false, timeout: 15_000, signal });
+  } else {
+    await execFileAsync('xdg-open', [targetPath], { shell: false, timeout: 15_000, signal });
+  }
+}
+
+export async function openFileOrPath(query: string, ctx: ToolContext): Promise<string> {
+  const trimmed = query.trim().replace(/^['"]|['"]$/g, '');
+  if (!trimmed) return JSON.stringify({ success: false, error: 'File name or path is required.' });
+
+  ctx.progress?.(20, `Searching for "${trimmed}"…`);
+
+  // Direct path check first
+  try {
+    const isAbsolute = path.isAbsolute(trimmed);
+    const resolvedPath = isAbsolute ? trimmed : path.resolve(trimmed);
+    const st = await stat(resolvedPath).catch(() => null);
+    if (st) {
+      ctx.progress?.(60, `Opening ${path.basename(resolvedPath)}…`);
+      await openPathWithOS(resolvedPath, ctx.signal);
+      return JSON.stringify({
+        success: true,
+        opened: path.basename(resolvedPath),
+        path: resolvedPath,
+        message: `Opened ${path.basename(resolvedPath)}.`,
+      });
+    }
+  } catch {}
+
+  // Search matching files across Desktop, Documents, Downloads, CWD
+  const matches = await searchLocalFiles(trimmed);
+
+  if (matches.length === 1) {
+    const hit = matches[0];
+    ctx.progress?.(60, `Opening ${hit.name}…`);
+    await openPathWithOS(hit.path, ctx.signal);
+    return JSON.stringify({
+      success: true,
+      opened: hit.name,
+      path: hit.path,
+      message: `Opened ${hit.name}.`,
+    });
+  }
+
+  if (matches.length > 1) {
+    ctx.progress?.(100, 'Multiple matching files found.');
+    return JSON.stringify({
+      success: false,
+      ambiguous: true,
+      message: `Found ${matches.length} files matching "${trimmed}". Ask the user which of these files they would like to open: ${matches.map(m => m.name).join(', ')}.`,
+      choices: matches.map((m, idx) => `${idx + 1}. ${m.name} (${m.path})`),
+    });
+  }
+
+  // Fallback: try opening with OS directly
+  try {
+    ctx.progress?.(50, `Attempting OS launch for "${trimmed}"…`);
+    await openPathWithOS(trimmed, ctx.signal);
+    return JSON.stringify({
+      success: true,
+      opened: trimmed,
+      message: `Opened ${trimmed}.`,
+    });
+  } catch (e) {
+    return JSON.stringify({
+      success: false,
+      error: `Could not find or open any file matching "${trimmed}".`,
+    });
+  }
+}
 
 /**
  * Desktop control — launching applications.
@@ -118,13 +238,14 @@ function resolve(raw: string): { key: string; target: AppTarget[keyof AppTarget]
 
 export interface DesktopArgs {
   action:
-    | 'launch_app' | 'list_apps' | 'open_url' | 'notify'
+    | 'launch_app' | 'list_apps' | 'open_url' | 'open_file' | 'notify'
     | 'list_profiles' | 'set_default_profile';
   /** For open_url: which browser to use, e.g. "chrome". */
   browser?: string;
   /** For launch_app on Chrome: which signed-in profile to open. */
   profile?: string;
   app_name?: string;
+  file_path?: string;
   url?: string;
   message?: string;
   title?: string;
@@ -227,6 +348,11 @@ export async function runDesktop(args: DesktopArgs, ctx: ToolContext): Promise<s
     return JSON.stringify({ success: true, apps: listApps() });
   }
 
+  if (args.action === 'open_file') {
+    const fileTarget = args.file_path || args.app_name || '';
+    return openFileOrPath(fileTarget, ctx);
+  }
+
   if (args.action === 'open_url') {
     /* "Open it in Chrome" has to actually mean Chrome. Without this the URL
        went to the OS default browser regardless of what was asked for. */
@@ -286,7 +412,7 @@ export async function runDesktop(args: DesktopArgs, ctx: ToolContext): Promise<s
     return JSON.stringify({
       success: false,
       error: `Unsupported action "${args.action}".`,
-      actions: ['launch_app', 'list_apps', 'open_url', 'notify', 'list_profiles', 'set_default_profile'],
+      actions: ['launch_app', 'list_apps', 'open_url', 'open_file', 'notify', 'list_profiles', 'set_default_profile'],
     });
   }
 
@@ -314,13 +440,8 @@ export async function runDesktop(args: DesktopArgs, ctx: ToolContext): Promise<s
 
   const hit = resolve(raw);
   if (!hit) {
-    // A refusal the model can act on: it tells it what IS available, so the
-    // next turn can pick a valid name instead of retrying the same one.
-    return JSON.stringify({
-      success: false,
-      error: `"${raw}" is not an allow-listed application on ${process.platform}.`,
-      available: listApps(),
-    });
+    // If not a pre-configured app launcher, attempt local file search & OS launch
+    return openFileOrPath(raw, ctx);
   }
 
   ctx.progress(55, `Launching ${hit.key}…`);
@@ -358,19 +479,18 @@ export const DESKTOP_SCHEMA = {
   properties: {
     action: {
       type: 'string',
-      enum: ['launch_app', 'list_apps', 'open_url', 'notify', 'list_profiles', 'set_default_profile'],
+      enum: ['launch_app', 'list_apps', 'open_url', 'open_file', 'notify', 'list_profiles', 'set_default_profile'],
       description:
-        'launch_app opens an installed application. list_apps returns what is available. ' +
-        'open_url opens a web address in the default browser. notify shows a desktop notification. '
-        + 'list_profiles returns the Chrome accounts on this machine. set_default_profile '
-        + 'remembers one so Chrome always opens as that account — use it when the user says '
-        + 'which account to use by default.',
+        'launch_app opens an installed application. open_file opens ANY file, document, image or directory by name or path (e.g. "report.pdf", "notes.txt"). If multiple files match a query, it reports the choices so you can ask the user which one to open. list_apps returns available apps. open_url opens a web address. notify shows a desktop notification.',
     },
     app_name: {
       type: 'string',
       description:
-        `For launch_app. Must be one of: ${Object.keys(ALLOWED).join(', ')}. ` +
-        'Common aliases such as "vscode" or "google chrome" are also accepted.',
+        `For launch_app or open_file. App name (e.g. "code", "chrome") or file/document name to open (e.g. "report.pdf").`,
+    },
+    file_path: {
+      type: 'string',
+      description: 'For open_file: the file name, document title, or path to open (e.g. "report.pdf" or "documents/notes.txt").',
     },
     url: {
       type: 'string',
@@ -384,11 +504,6 @@ export const DESKTOP_SCHEMA = {
     },
     title: { type: 'string', description: 'For notify. Short heading.' },
     message: { type: 'string', description: 'For notify. The notification body.' },
-    /* `profile` used to sit here — one line below the closing brace of
-       `properties`, making it a sibling of `properties` rather than one of
-       them. The model was told in the action description to "pass their
-       choice back as `profile`" while the schema never declared the
-       parameter, so Chrome kept opening without one. */
     profile: {
       type: 'string',
       description:
